@@ -27,6 +27,7 @@ if not MONGO_URI:
     raise RuntimeError("請在 .env 設定 MONGO_URI")
 
 APP_TITLE = "雙北高齡友善運輸儀表板"
+PAGE_ICON = "🚌" # 確保保留公車圖示變數
 
 CACHE_TTL_SECONDS = 3600
 
@@ -46,8 +47,8 @@ MAP_TYPE_OPTIONS = {
     "老年友善 (供需缺口模式)": "elderly",
 }
 
-# 移除 page_icon 參數以保持介面簡潔
-st.set_page_config(page_title=APP_TITLE, layout="wide")
+# 還原 page_icon 參數，確保網頁圖標是公車
+st.set_page_config(page_title=APP_TITLE, page_icon=PAGE_ICON, layout="wide")
 
 # =============================================================================
 # Custom CSS (UI Polish)
@@ -55,10 +56,10 @@ st.set_page_config(page_title=APP_TITLE, layout="wide")
 def inject_custom_css():
     st.markdown("""
         <style>
-        /* 全域字體調整 */
+        /* 全域字體調整與底部留白(避免被Footer擋住) */
         .block-container {
             padding-top: 2rem;
-            padding-bottom: 3rem;
+            padding-bottom: 4rem; 
         }
         /* Metric 卡片化設計 */
         div[data-testid="stMetric"] {
@@ -91,29 +92,19 @@ def inject_custom_css():
         section[data-testid="stSidebar"] {
             background-color: #f8f9fa;
         }
-        /* Footer 樣式 */
+        /* Footer 樣式 - 改為固定置底單行 */
         .footer {
-            position: relative;
-            margin-top: 50px;
-            padding: 30px;
+            position: fixed;
+            left: 0;
+            bottom: 0;
+            width: 100%;
             background-color: #f8f9fa;
             border-top: 1px solid #e9ecef;
             text-align: center;
-            color: #495057;
-        }
-        .footer-title {
-            font-weight: bold;
-            font-size: 1.1em;
-            margin-bottom: 10px;
-        }
-        .footer-text {
-            font-size: 0.9em;
-            margin-bottom: 5px;
-        }
-        .footer-copyright {
-            font-size: 0.8em;
-            color: #868e96;
-            margin-top: 15px;
+            color: #6c757d;
+            padding: 10px;
+            font-size: 0.85rem;
+            z-index: 999999; /* 確保在最上層，覆蓋側邊欄底部 */
         }
         </style>
     """, unsafe_allow_html=True)
@@ -572,11 +563,7 @@ def main():
     # 4. Footer
     st.markdown("""
         <div class="footer">
-            <div class="footer-title">K.Y.E Lockers Teams</div>
-            <div class="footer-text">課程：資料庫管理 (DBMS)</div>
-            <div class="footer-copyright">
-                Copyright © 2025. All Rights Reserved. 本系統創作理念受版權保護，未經授權請勿轉載。
-            </div>
+            K.Y.E Lockers Teams | Copyright © 2025. All Rights Reserved
         </div>
     """, unsafe_allow_html=True)
 
