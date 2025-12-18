@@ -1,4 +1,6 @@
-# Refactored UI for better UX
+// transit_accessibility_map.py
+
+# Refactored UI for professional UX
 
 from __future__ import annotations
 
@@ -26,14 +28,13 @@ MONGO_URI = os.getenv("MONGO_URI")
 if not MONGO_URI:
     raise RuntimeError("請在 .env 設定 MONGO_URI")
 
-APP_TITLE = "雙北高齡友善運輸儀表板" # 微調標題使其更專業
-PAGE_ICON = "🚌"
+APP_TITLE = "雙北高齡友善運輸儀表板"
 
 CACHE_TTL_SECONDS = 3600
 
 SIMPLIFY_STEP_FIXED = 5
 DEFAULT_ZOOM = 11
-MAP_HEIGHT = 600 # 稍微加大地圖高度以提升沈浸感
+MAP_HEIGHT = 600
 
 TIME_WINDOW_OPTIONS = {
     "平日早尖峰 (07-09)": "peak_morning",
@@ -47,7 +48,8 @@ MAP_TYPE_OPTIONS = {
     "老年友善 (供需缺口模式)": "elderly",
 }
 
-st.set_page_config(page_title=APP_TITLE, page_icon=PAGE_ICON, layout="wide")
+# 移除 page_icon 參數以保持介面簡潔
+st.set_page_config(page_title=APP_TITLE, layout="wide")
 
 # =============================================================================
 # Custom CSS (UI Polish)
@@ -393,9 +395,9 @@ def build_map(features: List[Dict], map_type: str, meta: Dict, *, zoom_start: in
 def main():
     inject_custom_css()
     
-    # 1. Sidebar - 設定與說明區 (將複雜資訊藏在這裡)
+    # 1. Sidebar - 設定與說明區
     with st.sidebar:
-        st.title("⚙️ 控制面板")
+        st.title("控制面板")
         
         st.subheader("顯示設定")
         map_type_label = st.selectbox(
@@ -416,8 +418,8 @@ def main():
         
         st.divider()
         
-        # 將公式說明移至 SideBar Expanders，保持主畫面乾淨
-        st.subheader("📚 指標定義參考")
+        # 將公式說明移至 SideBar Expanders
+        st.subheader("指標定義參考")
         with st.expander("PTAL 供給分數 (Supply)"):
              st.markdown(r"""
             參考 **TfL PTAL** 精神：
@@ -438,7 +440,7 @@ def main():
             
         st.caption(f"Backend: MongoDB | Areas: CartoDB Positron")
 
-    # 2. Main Area - 標題與全局概況 (Hero Section)
+    # 2. Main Area - 標題與全局概況
     st.title(APP_TITLE)
     st.markdown(f"#### 目前檢視： **{time_label}** ｜ 模式：**{map_type_label.split(' ')[0]}**")
 
@@ -470,11 +472,11 @@ def main():
     st.divider()
 
     # 3. 雙視圖切換 (Tab Layout)
-    tab_map, tab_data = st.tabs(["🗺️ 地圖探索模式", "📊 詳細數據與查詢"])
+    tab_map, tab_data = st.tabs(["地圖探索模式", "詳細數據與查詢"])
 
     # --- TAB 1: 地圖 ---
     with tab_map:
-        st.caption("💡 縮放地圖以查看細節，滑鼠懸停可查看該區詳細指標。")
+        st.caption("提示：縮放地圖以查看細節，滑鼠懸停可查看該區詳細指標。")
         m = build_map(features, map_type, meta)
         st_folium(m, height=MAP_HEIGHT, width="stretch", returned_objects=[])
 
@@ -482,7 +484,7 @@ def main():
     with tab_data:
         c1, c2 = st.columns([1, 2])
         with c1:
-            st.subheader("🔍 區域快搜")
+            st.subheader("區域快搜")
             q = st.text_input("輸入關鍵字", placeholder="例如：板橋、三重...", help="支援模糊搜尋城市或行政區名稱")
         
         # 準備資料表
@@ -516,7 +518,7 @@ def main():
             st.success(f"找到 {len(df_view)} 筆關於「{q}」的結果：")
             for _, r in df_view.head(3).iterrows():
                 with st.container():
-                    st.markdown(f"### 📍 {r['城市']} {r['行政區']}")
+                    st.markdown(f"### {r['城市']} {r['行政區']}")
                     res_c1, res_c2, res_c3, res_c4 = st.columns(4)
                     res_c1.metric("PTAL 供給", f"{r['PTAL分數']} ({r['PTAL等級']})")
                     res_c2.metric("老人比例", f"{r['65+比例(%)']}%")
@@ -526,7 +528,7 @@ def main():
                     st.markdown("---")
         
         # 完整表格
-        st.subheader("📋 完整數據列表")
+        st.subheader("完整數據列表")
         st.dataframe(
             df_view.sort_values(["城市", "行政區"]).reset_index(drop=True),
             use_container_width=True,
@@ -539,7 +541,7 @@ def main():
             return _df.to_csv(index=False).encode("utf-8-sig")
 
         st.download_button(
-            label="📥 下載此表 (CSV)",
+            label="下載此表 (CSV)",
             data=df_to_csv_bytes(df_view),
             file_name=f"transit_data_{time_window}.csv",
             mime="text/csv",
