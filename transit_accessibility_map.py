@@ -1,4 +1,4 @@
-# Refactored UI for professional UX
+# Refactored UI for professional UX with Dark Mode Support
 
 from __future__ import annotations
 
@@ -51,7 +51,7 @@ MAP_TYPE_OPTIONS = {
 st.set_page_config(page_title=APP_TITLE, page_icon=PAGE_ICON, layout="wide")
 
 # =============================================================================
-# Custom CSS (UI Polish)
+# Custom CSS (UI Polish with Dark Mode Support)
 # =============================================================================
 def inject_custom_css():
     st.markdown("""
@@ -61,10 +61,10 @@ def inject_custom_css():
             padding-top: 2rem;
             padding-bottom: 4rem; 
         }
-        /* Metric 卡片化設計 */
+        /* Metric 卡片化設計 - 改用 CSS 變數以支援深色模式 */
         div[data-testid="stMetric"] {
-            background-color: #f8f9fa;
-            border: 1px solid #e9ecef;
+            background-color: var(--secondary-background-color); /* 自動適應深淺色背景 */
+            border: 1px solid rgba(128, 128, 128, 0.2); /* 半透明邊框 */
             padding: 15px;
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.05);
@@ -73,8 +73,15 @@ def inject_custom_css():
         div[data-testid="stMetric"]:hover {
             transform: translateY(-2px);
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            border-color: #ced4da;
+            border-color: var(--primary-color); /* Hover 時變成主色 */
         }
+        div[data-testid="stMetric"] label {
+            color: var(--text-color); /* 標籤文字顏色自動適應 */
+        }
+        div[data-testid="stMetric"] div[data-testid="stMetricValue"] {
+            color: var(--text-color); /* 數值文字顏色自動適應 */
+        }
+
         /* 調整 Tabs 樣式 */
         .stTabs [data-baseweb="tab-list"] {
             gap: 24px;
@@ -88,23 +95,21 @@ def inject_custom_css():
             padding-top: 10px;
             padding-bottom: 10px;
         }
-        /* 側邊欄優化 */
-        section[data-testid="stSidebar"] {
-            background-color: #f8f9fa;
-        }
-        /* Footer 樣式 - 改為固定置底單行 */
+        
+        /* Footer 樣式 - 改用變數 */
         .footer {
             position: fixed;
             left: 0;
             bottom: 0;
             width: 100%;
-            background-color: #f8f9fa;
-            border-top: 1px solid #e9ecef;
+            background-color: var(--secondary-background-color); /* 跟隨側邊欄顏色 */
+            border-top: 1px solid rgba(128, 128, 128, 0.2);
             text-align: center;
-            color: #6c757d;
+            color: var(--text-color); /* 跟隨文字顏色 */
             padding: 10px;
             font-size: 0.85rem;
-            z-index: 999999; /* 確保在最上層，覆蓋側邊欄底部 */
+            z-index: 999999; /* 確保在最上層 */
+            opacity: 0.95;
         }
         </style>
     """, unsafe_allow_html=True)
@@ -374,7 +379,7 @@ def build_map(features: List[Dict], map_type: str, meta: Dict, *, zoom_start: in
         legend_html = f"""
         <div style="position: fixed; bottom: 30px; left: 30px; z-index:9999;
                     background: rgba(255,255,255,0.95); padding: 10px 12px; border-radius: 8px;
-                    box-shadow: 0 1px 6px rgba(0,0,0,0.15); font-size: 12px;">
+                    box-shadow: 0 1px 6px rgba(0,0,0,0.15); font-size: 12px; color: #333;">
           <div style="font-weight: 700; margin-bottom: 8px;">老年友善度 (供需適配)</div>
           <div><span style="display:inline-block;width:14px;height:14px;background:{palette[0]};margin-right:6px;"></span>不友善 (Gap大) ≤ {edges[0]:.1f}</div>
           <div><span style="display:inline-block;width:14px;height:14px;background:{palette[1]};margin-right:6px;"></span>需改善 ≤ {edges[1]:.1f}</div>
@@ -387,7 +392,7 @@ def build_map(features: List[Dict], map_type: str, meta: Dict, *, zoom_start: in
         legend_html = """
         <div style="position: fixed; bottom: 30px; left: 30px; z-index:9999;
                     background: rgba(255,255,255,0.95); padding: 10px 12px; border-radius: 8px;
-                    box-shadow: 0 1px 6px rgba(0,0,0,0.15); font-size: 12px;">
+                    box-shadow: 0 1px 6px rgba(0,0,0,0.15); font-size: 12px; color: #333;">
           <div style="font-weight: 700; margin-bottom: 8px;">PTAL 供給等級</div>
           <div><span style="display:inline-block;width:14px;height:14px;background:#2ecc71;margin-right:6px;"></span>A (≥85) 極優</div>
           <div><span style="display:inline-block;width:14px;height:14px;background:#3498db;margin-right:6px;"></span>B (70-84) 優良</div>
