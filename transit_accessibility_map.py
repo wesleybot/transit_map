@@ -26,7 +26,7 @@ MONGO_URI = os.getenv("MONGO_URI")
 if not MONGO_URI:
     raise RuntimeError("請在 .env 設定 MONGO_URI")
 
-APP_TITLE = "雙北高齡友善運輸儀表板"
+APP_TITLE = "雙北高齡友善運輸地圖 | K.Y.E Lockers"
 PAGE_ICON = "🚌" # 確保保留公車圖示變數
 
 CACHE_TTL_SECONDS = 3600
