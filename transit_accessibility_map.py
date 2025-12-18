@@ -91,6 +91,30 @@ def inject_custom_css():
         section[data-testid="stSidebar"] {
             background-color: #f8f9fa;
         }
+        /* Footer 樣式 */
+        .footer {
+            position: relative;
+            margin-top: 50px;
+            padding: 30px;
+            background-color: #f8f9fa;
+            border-top: 1px solid #e9ecef;
+            text-align: center;
+            color: #495057;
+        }
+        .footer-title {
+            font-weight: bold;
+            font-size: 1.1em;
+            margin-bottom: 10px;
+        }
+        .footer-text {
+            font-size: 0.9em;
+            margin-bottom: 5px;
+        }
+        .footer-copyright {
+            font-size: 0.8em;
+            color: #868e96;
+            margin-top: 15px;
+        }
         </style>
     """, unsafe_allow_html=True)
 
@@ -544,6 +568,17 @@ def main():
             file_name=f"transit_data_{time_window}.csv",
             mime="text/csv",
         )
+
+    # 4. Footer
+    st.markdown("""
+        <div class="footer">
+            <div class="footer-title">K.Y.E Lockers Teams</div>
+            <div class="footer-text">課程：資料庫管理 (DBMS)</div>
+            <div class="footer-copyright">
+                Copyright © 2025. All Rights Reserved. 本系統創作理念受版權保護，未經授權請勿轉載。
+            </div>
+        </div>
+    """, unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
