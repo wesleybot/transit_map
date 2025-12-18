@@ -1,5 +1,3 @@
-// transit_accessibility_map.py
-
 # Refactored UI for professional UX
 
 from __future__ import annotations
