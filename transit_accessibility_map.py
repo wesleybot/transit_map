@@ -56,10 +56,10 @@ st.set_page_config(page_title=APP_TITLE, page_icon=PAGE_ICON, layout="wide")
 def inject_custom_css():
     st.markdown("""
         <style>
-        /* 全域字體調整與底部留白(避免被Footer擋住) */
+        /* 全域字體調整 */
         .block-container {
             padding-top: 2rem;
-            padding-bottom: 4rem; 
+            padding-bottom: 2rem; 
         }
         /* Metric 卡片化設計 - 改用 CSS 變數以支援深色模式 */
         div[data-testid="stMetric"] {
@@ -96,20 +96,18 @@ def inject_custom_css():
             padding-bottom: 10px;
         }
         
-        /* Footer 樣式 - 改用變數 */
+        /* Footer 樣式 - 改為正常流動佈局 (Relative) */
         .footer {
-            position: fixed;
-            left: 0;
-            bottom: 0;
+            position: relative; /* 不再固定於螢幕底部 */
+            margin-top: 50px;   /* 與上方內容保持距離 */
             width: 100%;
-            background-color: var(--secondary-background-color); /* 跟隨側邊欄顏色 */
+            background-color: var(--secondary-background-color); /* 跟隨背景色 */
             border-top: 1px solid rgba(128, 128, 128, 0.2);
             text-align: center;
             color: var(--text-color); /* 跟隨文字顏色 */
-            padding: 10px;
+            padding: 20px;
             font-size: 0.85rem;
-            z-index: 999999; /* 確保在最上層 */
-            opacity: 0.95;
+            /* 移除 z-index 與 fixed 定位，避免遮擋內容 */
         }
         </style>
     """, unsafe_allow_html=True)
