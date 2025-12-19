@@ -32,8 +32,8 @@ st.set_page_config(
     page_icon=PAGE_ICON, 
     layout="wide",
     menu_items={
-        'Get Help': 'https://www.google.com',
-        'Report a bug': 'https://www.google.com',
+        'Get Help': 'https://kyesdbms.streamlit.app/',
+        'Report a bug': 'https://kyesdbms.streamlit.app/',
         'About': "# 雙北高齡友善運輸地圖\n\n由 K.Y.E Lockers 團隊開發，提供雙北地區大眾運輸供給與高齡需求之空間分析儀表板。"
     }
 )
