@@ -1,5 +1,5 @@
 # Refactored UI for professional UX with Dark Mode Support
-# Optimized for Social Media Sharing (Title & Config)
+# Fixed: RWD Mobile responsiveness (use_container_width=True)
 
 from __future__ import annotations
 
@@ -22,11 +22,10 @@ warnings.filterwarnings("ignore")
 # =============================================================================
 # Streamlit Page Config (Critical for Social Previews)
 # =============================================================================
-# 這個標題會直接變成 LINE/FB 連結預覽的大標題
 APP_TITLE = "雙北高齡友善運輸地圖 | K.Y.E Lockers"
 PAGE_ICON = "🚌" 
 
-# menu_items 設定會出現在右上角的選單中，雖然不會直接出現在連結預覽，但能增加專業度
+# menu_items 設定會出現在右上角的選單中
 st.set_page_config(
     page_title=APP_TITLE, 
     page_icon=PAGE_ICON, 
@@ -365,13 +364,15 @@ def build_map(features: List[Dict], map_type: str, meta: Dict, *, zoom_start: in
         tooltip=folium.GeoJsonTooltip(fields=tooltip_fields, aliases=tooltip_aliases, sticky=True),
     ).add_to(m)
 
+    # RWD Fix: 圖例 (Legend) 增加 max-width 防止在手機上爆版
     if map_type == "elderly":
         edges = meta.get("elderly_quantile_edges", [20, 40, 60, 80])
         palette = meta.get("elderly_palette", ["#d73027", "#fc8d59", "#fee090", "#91bfdb", "#4575b4"])
         legend_html = f"""
         <div style="position: fixed; bottom: 30px; left: 30px; z-index:9999;
                     background: rgba(255,255,255,0.95); padding: 10px 12px; border-radius: 8px;
-                    box-shadow: 0 1px 6px rgba(0,0,0,0.15); font-size: 12px; color: #333;">
+                    box-shadow: 0 1px 6px rgba(0,0,0,0.15); font-size: 12px; color: #333;
+                    max-width: 60vw; overflow-wrap: break-word;">
           <div style="font-weight: 700; margin-bottom: 8px;">老年友善度 (供需適配)</div>
           <div><span style="display:inline-block;width:14px;height:14px;background:{palette[0]};margin-right:6px;"></span>不友善 (Gap大) ≤ {edges[0]:.1f}</div>
           <div><span style="display:inline-block;width:14px;height:14px;background:{palette[1]};margin-right:6px;"></span>需改善 ≤ {edges[1]:.1f}</div>
@@ -384,7 +385,8 @@ def build_map(features: List[Dict], map_type: str, meta: Dict, *, zoom_start: in
         legend_html = """
         <div style="position: fixed; bottom: 30px; left: 30px; z-index:9999;
                     background: rgba(255,255,255,0.95); padding: 10px 12px; border-radius: 8px;
-                    box-shadow: 0 1px 6px rgba(0,0,0,0.15); font-size: 12px; color: #333;">
+                    box-shadow: 0 1px 6px rgba(0,0,0,0.15); font-size: 12px; color: #333;
+                    max-width: 60vw; overflow-wrap: break-word;">
           <div style="font-weight: 700; margin-bottom: 8px;">PTAL 供給等級</div>
           <div><span style="display:inline-block;width:14px;height:14px;background:#2ecc71;margin-right:6px;"></span>A (≥85) 極優</div>
           <div><span style="display:inline-block;width:14px;height:14px;background:#3498db;margin-right:6px;"></span>B (70-84) 優良</div>
@@ -490,7 +492,9 @@ def main():
     with tab_map:
         st.caption("提示：縮放地圖以查看細節，滑鼠懸停可查看該區詳細指標。")
         m = build_map(features, map_type, meta)
-        st_folium(m, height=MAP_HEIGHT, width="stretch", returned_objects=[])
+        
+        # RWD FIX: 這裡使用 use_container_width=True 讓地圖適應手機寬度
+        st_folium(m, height=MAP_HEIGHT, use_container_width=True, returned_objects=[])
 
     # --- TAB 2: 查詢與列表 ---
     with tab_data:
