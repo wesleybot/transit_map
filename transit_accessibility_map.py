@@ -1,4 +1,5 @@
 # Refactored UI for professional UX with Dark Mode Support
+# Fixed: 1. Search focus jump issue (added key) 2. Download button now downloads ALL data
 
 from __future__ import annotations
 
@@ -501,7 +502,8 @@ def main():
         c1, c2 = st.columns([1, 2])
         with c1:
             st.subheader("區域快搜")
-            q = st.text_input("輸入關鍵字", placeholder="例如：板橋、三重...", help="支援模糊搜尋城市或行政區名稱")
+            # FIX: Added key to prevent state reset and jumping behavior
+            q = st.text_input("輸入關鍵字", placeholder="例如：板橋、三重...", help="支援模糊搜尋城市或行政區名稱", key="search_input")
         
         # 準備資料表
         rows = []
@@ -556,10 +558,11 @@ def main():
         def df_to_csv_bytes(_df: pd.DataFrame) -> bytes:
             return _df.to_csv(index=False).encode("utf-8-sig")
 
+        # FIX: Changed data source from df_view to df (ALL data)
         st.download_button(
-            label="下載此表 (CSV)",
-            data=df_to_csv_bytes(df_view),
-            file_name=f"transit_data_{time_window}.csv",
+            label="下載完整資料 (CSV)", # Updated label to reflect action
+            data=df_to_csv_bytes(df), # 使用 df (全部資料) 而不是 df_view (搜尋結果)
+            file_name=f"transit_data_ALL_{time_window}.csv",
             mime="text/csv",
         )
 
