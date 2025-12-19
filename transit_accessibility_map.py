@@ -1,5 +1,5 @@
 # Refactored UI for professional UX with Dark Mode Support
-# Fixed: 1. Search focus jump issue (added key) 2. Download button now downloads ALL data
+# Fixed: "Oh no" Error (Reordered set_page_config, robust DB connection, safe ENV check)
 
 from __future__ import annotations
 
@@ -20,18 +20,28 @@ from dotenv import load_dotenv
 warnings.filterwarnings("ignore")
 
 # =============================================================================
-# Config
+# Streamlit Page Config (Must be the FIRST st command)
+# =============================================================================
+APP_TITLE = "雙北高齡友善運輸地圖 | K.Y.E Lockers"
+PAGE_ICON = "🚌" 
+
+st.set_page_config(page_title=APP_TITLE, page_icon=PAGE_ICON, layout="wide")
+
+# =============================================================================
+# Config & Environment Check
 # =============================================================================
 load_dotenv()
 MONGO_URI = os.getenv("MONGO_URI")
-if not MONGO_URI:
-    raise RuntimeError("請在 .env 設定 MONGO_URI")
 
-APP_TITLE = "雙北高齡友善運輸地圖 | K.Y.E Lockers"
-PAGE_ICON = "🚌" # 確保保留公車圖示變數
+# 嘗試從 Streamlit Secrets 讀取 (如果你是在 Streamlit Cloud 執行)
+if not MONGO_URI and "MONGO_URI" in st.secrets:
+    MONGO_URI = st.secrets["MONGO_URI"]
+
+if not MONGO_URI:
+    st.error("⚠️ 未偵測到資料庫連線字串！請在 `.env` 檔案設定 `MONGO_URI`，或在 Streamlit Secrets 中設定。")
+    st.stop()
 
 CACHE_TTL_SECONDS = 3600
-
 SIMPLIFY_STEP_FIXED = 5
 DEFAULT_ZOOM = 11
 MAP_HEIGHT = 600
@@ -48,9 +58,6 @@ MAP_TYPE_OPTIONS = {
     "老年友善 (供需缺口模式)": "elderly",
 }
 
-# 還原 page_icon 參數，確保網頁圖標是公車
-st.set_page_config(page_title=APP_TITLE, page_icon=PAGE_ICON, layout="wide")
-
 # =============================================================================
 # Custom CSS (UI Polish with Dark Mode Support)
 # =============================================================================
@@ -64,8 +71,8 @@ def inject_custom_css():
         }
         /* Metric 卡片化設計 - 改用 CSS 變數以支援深色模式 */
         div[data-testid="stMetric"] {
-            background-color: var(--secondary-background-color); /* 自動適應深淺色背景 */
-            border: 1px solid rgba(128, 128, 128, 0.2); /* 半透明邊框 */
+            background-color: var(--secondary-background-color);
+            border: 1px solid rgba(128, 128, 128, 0.2);
             padding: 15px;
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.05);
@@ -74,13 +81,13 @@ def inject_custom_css():
         div[data-testid="stMetric"]:hover {
             transform: translateY(-2px);
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            border-color: var(--primary-color); /* Hover 時變成主色 */
+            border-color: var(--primary-color);
         }
         div[data-testid="stMetric"] label {
-            color: var(--text-color); /* 標籤文字顏色自動適應 */
+            color: var(--text-color);
         }
         div[data-testid="stMetric"] div[data-testid="stMetricValue"] {
-            color: var(--text-color); /* 數值文字顏色自動適應 */
+            color: var(--text-color);
         }
 
         /* 調整 Tabs 樣式 */
@@ -99,52 +106,51 @@ def inject_custom_css():
         
         /* Footer 樣式 - 改為正常流動佈局 (Relative) */
         .footer {
-            position: relative; /* 不再固定於螢幕底部 */
-            margin-top: 50px;   /* 與上方內容保持距離 */
+            position: relative;
+            margin-top: 50px;
             width: 100%;
-            background-color: var(--secondary-background-color); /* 跟隨背景色 */
+            background-color: var(--secondary-background-color);
             border-top: 1px solid rgba(128, 128, 128, 0.2);
             text-align: center;
-            color: var(--text-color); /* 跟隨文字顏色 */
+            color: var(--text-color);
             padding: 20px;
             font-size: 0.85rem;
-            /* 移除 z-index 與 fixed 定位，避免遮擋內容 */
         }
         </style>
     """, unsafe_allow_html=True)
 
 # =============================================================================
-# MongoDB (Logic Unchanged)
+# MongoDB (Logic Improved for Robustness)
 # =============================================================================
 @st.cache_resource
 def get_db():
-    client = MongoClient(MONGO_URI)
-    db = client.get_default_database()
-    if db is None:
-        db = client["tdx_transit"]
-    return db
-
+    try:
+        client = MongoClient(MONGO_URI)
+        # 嘗試取得預設資料庫，如果 URI 沒指定，會報錯，這時就用 try-except 接住
+        try:
+            db = client.get_default_database()
+        except Exception:
+            # 如果連線字串沒有指定 DB 名稱，預設使用 "tdx_transit"
+            db = client["tdx_transit"]
+        return db
+    except Exception as e:
+        st.error(f"無法連線至資料庫，請檢查連線設定。錯誤訊息: {e}")
+        return None
 
 @st.cache_data(ttl=CACHE_TTL_SECONDS)
 def load_areas(_db):
+    if _db is None: return []
     return list(
         _db["areas"].find(
             {},
             {
-                "_id": 1,
-                "city": 1,
-                "name": 1,
-                "geometry": 1,
-                "population_total": 1,
-                "population_age_60_69": 1,
-                "population_age_70_79": 1,
-                "population_age_80_89": 1,
-                "population_age_90_99": 1,
-                "population_age_100_plus": 1,
+                "_id": 1, "city": 1, "name": 1, "geometry": 1,
+                "population_total": 1, "population_age_60_69": 1,
+                "population_age_70_79": 1, "population_age_80_89": 1,
+                "population_age_90_99": 1, "population_age_100_plus": 1,
             },
         )
     )
-
 
 # =============================================================================
 # Helpers (Logic Unchanged)
@@ -157,71 +163,52 @@ def estimate_pop_65p(area_doc: Dict) -> float:
     pop_100p = float(area_doc.get("population_age_100_plus", 0) or 0)
     return pop_70_79 + pop_80_89 + pop_90_99 + pop_100p + 0.5 * pop_60_69
 
-
 def simplify_coords(coords, step: int):
-    if not coords:
-        return coords
-    if isinstance(coords[0], (float, int)):
-        return coords
+    if not coords: return coords
+    if isinstance(coords[0], (float, int)): return coords
     if isinstance(coords[0][0], (float, int)):
-        if len(coords) <= 4:
-            return coords
+        if len(coords) <= 4: return coords
         out = coords[::step]
-        if out[0] != out[-1]:
-            out.append(out[0])
-        if len(out) < 4:
-            return coords
+        if out[0] != out[-1]: out.append(out[0])
+        if len(out) < 4: return coords
         return out
     return [simplify_coords(c, step) for c in coords]
 
-
 def simplify_geometry(geom: Dict, step: int) -> Dict:
-    if not geom or "type" not in geom:
-        return geom
+    if not geom or "type" not in geom: return geom
     g = dict(geom)
     if "coordinates" in g:
         g["coordinates"] = simplify_coords(g["coordinates"], step)
     return g
 
-
 def ptal_grade(score: float) -> Tuple[str, str]:
     s = float(score or 0)
-    if s >= 85:
-        return "A", "#2ecc71"
-    if s >= 70:
-        return "B", "#3498db"
-    if s >= 55:
-        return "C", "#f1c40f"
-    if s >= 40:
-        return "D", "#e67e22"
-    if s >= 25:
-        return "E", "#c0392b"
+    if s >= 85: return "A", "#2ecc71"
+    if s >= 70: return "B", "#3498db"
+    if s >= 55: return "C", "#f1c40f"
+    if s >= 40: return "D", "#e67e22"
+    if s >= 25: return "E", "#c0392b"
     return "F", "#7f8c8d"
-
 
 def quantile_color(value: float, edges: List[float], palette: List[str]) -> str:
     if value is None or (isinstance(value, float) and math.isnan(value)):
         return "#d0d0d0"
     for i, e in enumerate(edges):
-        if value <= e:
-            return palette[i]
+        if value <= e: return palette[i]
     return palette[-1]
-
 
 # =============================================================================
 # Area scores (Logic Unchanged)
 # =============================================================================
 @st.cache_data(ttl=CACHE_TTL_SECONDS)
 def load_area_scores_from_mongo(_db, time_window: str) -> Dict[str, Dict]:
+    if _db is None: return {}
     def run(mode: str, foreign_field: str):
         pipeline = [
             {"$match": {"time_window": time_window, "join_mode": mode}},
             {"$project": {"join_key": 1, "supply_score": 1, "avg_headway_min": 1, "total_trips_per_hour": 1}},
             {"$lookup": {
-                "from": "stations",
-                "localField": "join_key",
-                "foreignField": foreign_field,
-                "as": "st"
+                "from": "stations", "localField": "join_key", "foreignField": foreign_field, "as": "st"
             }},
             {"$unwind": {"path": "$st", "preserveNullAndEmptyArrays": False}},
             {"$match": {"st.area_id": {"$ne": None}}},
@@ -258,7 +245,6 @@ def load_area_scores_from_mongo(_db, time_window: str) -> Dict[str, Dict]:
         }
     return out
 
-
 def calc_elderly_friendly(area_doc: Dict, ptal_score: float, headway: float, tph: float) -> Dict:
     pop_total = float(area_doc.get("population_total", 0) or 0)
     pop_65p = estimate_pop_65p(area_doc)
@@ -278,7 +264,6 @@ def calc_elderly_friendly(area_doc: Dict, ptal_score: float, headway: float, tph
         "gap": round(raw_gap, 1),
         "elderly_score": round(final_score, 1)
     }
-
 
 # =============================================================================
 # Build GeoJSON (Logic Unchanged)
@@ -344,7 +329,6 @@ def build_area_features(areas: List[Dict], area_scores: Dict[str, Dict], map_typ
     meta = {"elderly_quantile_edges": edges, "elderly_palette": palette}
     return features, meta
 
-
 # =============================================================================
 # Build Map (Logic Unchanged)
 # =============================================================================
@@ -405,14 +389,13 @@ def build_map(features: List[Dict], map_type: str, meta: Dict, *, zoom_start: in
     m.get_root().html.add_child(folium.Element(legend_html))
     return m
 
-
 # =============================================================================
 # New UI (Main Refactored)
 # =============================================================================
 def main():
     inject_custom_css()
     
-    # 1. Sidebar - 設定與說明區
+    # 1. Sidebar
     with st.sidebar:
         st.title("控制面板")
         
@@ -435,7 +418,6 @@ def main():
         
         st.divider()
         
-        # 將公式說明移至 SideBar Expanders
         st.subheader("指標定義參考")
         with st.expander("PTAL 供給分數 (Supply)"):
              st.markdown(r"""
@@ -457,18 +439,22 @@ def main():
             
         st.caption(f"Backend: MongoDB | Areas: CartoDB Positron")
 
-    # 2. Main Area - 標題與全局概況
+    # 2. Main Area
     st.title(APP_TITLE)
     st.markdown(f"#### 目前檢視： **{time_label}** ｜ 模式：**{map_type_label.split(' ')[0]}**")
 
     # 載入資料
     db = get_db()
-    areas = load_areas(db)
-    area_scores = load_area_scores_from_mongo(db, time_window)
-    features, meta = build_area_features(areas, area_scores, map_type)
+    if db is not None:
+        areas = load_areas(db)
+        area_scores = load_area_scores_from_mongo(db, time_window)
+        features, meta = build_area_features(areas, area_scores, map_type)
+    else:
+        # DB 連線失敗的 Fallback
+        areas, area_scores, features, meta = [], {}, [], {}
+        st.warning("⚠️ 資料庫連線失敗，目前顯示空白地圖。")
 
-    # 全局數據卡片 (Dashboard Summary)
-    # 計算一些全域平均值，讓使用者有比較的基準
+    # 全局數據卡片
     df_all = pd.DataFrame([f['properties'] for f in features])
     
     if not df_all.empty:
@@ -488,7 +474,7 @@ def main():
     
     st.divider()
 
-    # 3. 雙視圖切換 (Tab Layout)
+    # 3. 雙視圖切換
     tab_map, tab_data = st.tabs(["地圖探索模式", "詳細數據與查詢"])
 
     # --- TAB 1: 地圖 ---
@@ -502,10 +488,9 @@ def main():
         c1, c2 = st.columns([1, 2])
         with c1:
             st.subheader("區域快搜")
-            # FIX: Added key to prevent state reset and jumping behavior
+            # 這裡保留 key 避免 focus jump
             q = st.text_input("輸入關鍵字", placeholder="例如：板橋、三重...", help="支援模糊搜尋城市或行政區名稱", key="search_input")
         
-        # 準備資料表
         rows = []
         for f in features:
             p = f.get("properties") or {}
@@ -523,15 +508,17 @@ def main():
             })
         df = pd.DataFrame(rows)
 
-        # 搜尋邏輯
         if q.strip():
             qq = q.strip()
-            df_view = df[df["行政區"].astype(str).str.contains(qq, case=False, na=False) |
-                         df["城市"].astype(str).str.contains(qq, case=False, na=False)].copy()
+            # 避免 DataFrame 為空時報錯
+            if not df.empty:
+                df_view = df[df["行政區"].astype(str).str.contains(qq, case=False, na=False) |
+                             df["城市"].astype(str).str.contains(qq, case=False, na=False)].copy()
+            else:
+                df_view = df.copy()
         else:
             df_view = df.copy()
 
-        # 搜尋結果呈現 - 如果有搜尋，顯示精緻的單區卡片
         if q.strip() and not df_view.empty:
             st.success(f"找到 {len(df_view)} 筆關於「{q}」的結果：")
             for _, r in df_view.head(3).iterrows():
@@ -545,23 +532,20 @@ def main():
                                   delta=r['供需缺口(Gap)'], delta_color="normal")
                     st.markdown("---")
         
-        # 完整表格
         st.subheader("完整數據列表")
         st.dataframe(
-            df_view.sort_values(["城市", "行政區"]).reset_index(drop=True),
+            df_view.sort_values(["城市", "行政區"]).reset_index(drop=True) if not df_view.empty else df_view,
             use_container_width=True,
             height=400
         )
 
-        # 下載區
         @st.cache_data(ttl=CACHE_TTL_SECONDS)
         def df_to_csv_bytes(_df: pd.DataFrame) -> bytes:
             return _df.to_csv(index=False).encode("utf-8-sig")
 
-        # FIX: Changed data source from df_view to df (ALL data)
         st.download_button(
-            label="下載完整資料 (CSV)", # Updated label to reflect action
-            data=df_to_csv_bytes(df), # 使用 df (全部資料) 而不是 df_view (搜尋結果)
+            label="下載完整資料 (CSV)",
+            data=df_to_csv_bytes(df), # 使用完整 df
             file_name=f"transit_data_ALL_{time_window}.csv",
             mime="text/csv",
         )
