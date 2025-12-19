@@ -1,5 +1,5 @@
 # Refactored UI for professional UX with Dark Mode Support
-# Fixed: "Oh no" Error (Reordered set_page_config, robust DB connection, safe ENV check)
+# Optimized for Social Media Sharing (Title & Config)
 
 from __future__ import annotations
 
@@ -20,12 +20,23 @@ from dotenv import load_dotenv
 warnings.filterwarnings("ignore")
 
 # =============================================================================
-# Streamlit Page Config (Must be the FIRST st command)
+# Streamlit Page Config (Critical for Social Previews)
 # =============================================================================
+# 這個標題會直接變成 LINE/FB 連結預覽的大標題
 APP_TITLE = "雙北高齡友善運輸地圖 | K.Y.E Lockers"
 PAGE_ICON = "🚌" 
 
-st.set_page_config(page_title=APP_TITLE, page_icon=PAGE_ICON, layout="wide")
+# menu_items 設定會出現在右上角的選單中，雖然不會直接出現在連結預覽，但能增加專業度
+st.set_page_config(
+    page_title=APP_TITLE, 
+    page_icon=PAGE_ICON, 
+    layout="wide",
+    menu_items={
+        'Get Help': 'https://www.google.com',
+        'Report a bug': 'https://www.google.com',
+        'About': "# 雙北高齡友善運輸地圖\n\n由 K.Y.E Lockers 團隊開發，提供雙北地區大眾運輸供給與高齡需求之空間分析儀表板。"
+    }
+)
 
 # =============================================================================
 # Config & Environment Check
@@ -38,7 +49,7 @@ if not MONGO_URI and "MONGO_URI" in st.secrets:
     MONGO_URI = st.secrets["MONGO_URI"]
 
 if not MONGO_URI:
-    st.error("⚠️ 未偵測到資料庫連線字串！請在 `.env` 檔案設定 `MONGO_URI`，或在 Streamlit Secrets 中設定。")
+    st.error("錯誤：未偵測到資料庫連線字串。請在 .env 檔案或 Streamlit Secrets 設定 MONGO_URI。")
     st.stop()
 
 CACHE_TTL_SECONDS = 3600
@@ -126,11 +137,9 @@ def inject_custom_css():
 def get_db():
     try:
         client = MongoClient(MONGO_URI)
-        # 嘗試取得預設資料庫，如果 URI 沒指定，會報錯，這時就用 try-except 接住
         try:
             db = client.get_default_database()
         except Exception:
-            # 如果連線字串沒有指定 DB 名稱，預設使用 "tdx_transit"
             db = client["tdx_transit"]
         return db
     except Exception as e:
@@ -452,7 +461,7 @@ def main():
     else:
         # DB 連線失敗的 Fallback
         areas, area_scores, features, meta = [], {}, [], {}
-        st.warning("⚠️ 資料庫連線失敗，目前顯示空白地圖。")
+        st.warning("警告：資料庫連線失敗，目前顯示空白地圖。")
 
     # 全局數據卡片
     df_all = pd.DataFrame([f['properties'] for f in features])
