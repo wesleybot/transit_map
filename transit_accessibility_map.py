@@ -1,5 +1,6 @@
 # Refactored UI for professional UX with Dark Mode Support
-# Color Theme Update: Sequential Red Gradient for Elderly Friendly Scores
+# Fixed: RWD Mobile responsiveness (use_container_width=True)
+# Update: Applied Red Gradient for Elderly Friendly Scores
 
 from __future__ import annotations
 
@@ -20,11 +21,12 @@ from dotenv import load_dotenv
 warnings.filterwarnings("ignore")
 
 # =============================================================================
-# Streamlit Page Config
+# Streamlit Page Config (Critical for Social Previews)
 # =============================================================================
 APP_TITLE = "雙北高齡友善運輸地圖 | K.Y.E Lockers"
 PAGE_ICON = "🚌" 
 
+# menu_items 設定會出現在右上角的選單中
 st.set_page_config(
     page_title=APP_TITLE, 
     page_icon=PAGE_ICON, 
@@ -42,6 +44,7 @@ st.set_page_config(
 load_dotenv()
 MONGO_URI = os.getenv("MONGO_URI")
 
+# 嘗試從 Streamlit Secrets 讀取 (如果你是在 Streamlit Cloud 執行)
 if not MONGO_URI and "MONGO_URI" in st.secrets:
     MONGO_URI = st.secrets["MONGO_URI"]
 
@@ -72,10 +75,12 @@ MAP_TYPE_OPTIONS = {
 def inject_custom_css():
     st.markdown("""
         <style>
+        /* 全域字體調整 */
         .block-container {
             padding-top: 2rem;
             padding-bottom: 2rem; 
         }
+        /* Metric 卡片化設計 - 改用 CSS 變數以支援深色模式 */
         div[data-testid="stMetric"] {
             background-color: var(--secondary-background-color);
             border: 1px solid rgba(128, 128, 128, 0.2);
@@ -89,6 +94,14 @@ def inject_custom_css():
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
             border-color: var(--primary-color);
         }
+        div[data-testid="stMetric"] label {
+            color: var(--text-color);
+        }
+        div[data-testid="stMetric"] div[data-testid="stMetricValue"] {
+            color: var(--text-color);
+        }
+
+        /* 調整 Tabs 樣式 */
         .stTabs [data-baseweb="tab-list"] {
             gap: 24px;
         }
@@ -97,9 +110,12 @@ def inject_custom_css():
             white-space: pre-wrap;
             background-color: transparent;
             border-radius: 4px 4px 0 0;
+            gap: 1px;
             padding-top: 10px;
             padding-bottom: 10px;
         }
+        
+        /* Footer 樣式 - 改為正常流動佈局 (Relative) */
         .footer {
             position: relative;
             margin-top: 50px;
@@ -115,7 +131,7 @@ def inject_custom_css():
     """, unsafe_allow_html=True)
 
 # =============================================================================
-# MongoDB
+# MongoDB (Logic Improved for Robustness)
 # =============================================================================
 @st.cache_resource
 def get_db():
@@ -127,21 +143,26 @@ def get_db():
             db = client["tdx_transit"]
         return db
     except Exception as e:
-        st.error(f"無法連線至資料庫: {e}")
+        st.error(f"無法連線至資料庫，請檢查連線設定。錯誤訊息: {e}")
         return None
 
 @st.cache_data(ttl=CACHE_TTL_SECONDS)
 def load_areas(_db):
     if _db is None: return []
-    return list(_db["areas"].find({}, {
-        "_id": 1, "city": 1, "name": 1, "geometry": 1,
-        "population_total": 1, "population_age_60_69": 1,
-        "population_age_70_79": 1, "population_age_80_89": 1,
-        "population_age_90_99": 1, "population_age_100_plus": 1,
-    }))
+    return list(
+        _db["areas"].find(
+            {},
+            {
+                "_id": 1, "city": 1, "name": 1, "geometry": 1,
+                "population_total": 1, "population_age_60_69": 1,
+                "population_age_70_79": 1, "population_age_80_89": 1,
+                "population_age_90_99": 1, "population_age_100_plus": 1,
+            },
+        )
+    )
 
 # =============================================================================
-# Helpers
+# Helpers (Logic Unchanged)
 # =============================================================================
 def estimate_pop_65p(area_doc: Dict) -> float:
     pop_60_69 = float(area_doc.get("population_age_60_69", 0) or 0)
@@ -158,6 +179,7 @@ def simplify_coords(coords, step: int):
         if len(coords) <= 4: return coords
         out = coords[::step]
         if out[0] != out[-1]: out.append(out[0])
+        if len(out) < 4: return coords
         return out
     return [simplify_coords(c, step) for c in coords]
 
@@ -185,7 +207,7 @@ def quantile_color(value: float, edges: List[float], palette: List[str]) -> str:
     return palette[-1]
 
 # =============================================================================
-# Area scores Logic
+# Area scores (Logic Unchanged)
 # =============================================================================
 @st.cache_data(ttl=CACHE_TTL_SECONDS)
 def load_area_scores_from_mongo(_db, time_window: str) -> Dict[str, Dict]:
@@ -232,12 +254,11 @@ def load_area_scores_from_mongo(_db, time_window: str) -> Dict[str, Dict]:
         }
     return out
 
-def calc_elderly_friendly(area_doc: Dict, ptal_score: float) -> Dict:
+def calc_elderly_friendly(area_doc: Dict, ptal_score: float, headway: float, tph: float) -> Dict:
     pop_total = float(area_doc.get("population_total", 0) or 0)
     pop_65p = estimate_pop_65p(area_doc)
     
     elderly_ratio = (pop_65p / pop_total * 100.0) if pop_total > 0 else 0.0
-    # 簡化需求指標計算
     demand_score = min(100.0, max(0.0, (elderly_ratio - 5) / (20 - 5) * 100.0))
     supply_score = float(ptal_score)
     
@@ -254,65 +275,72 @@ def calc_elderly_friendly(area_doc: Dict, ptal_score: float) -> Dict:
     }
 
 # =============================================================================
-# Build GeoJSON (Gradient Modified)
+# Build GeoJSON (Update Palette to Red Gradient)
 # =============================================================================
 @st.cache_data(ttl=CACHE_TTL_SECONDS)
 def build_area_features(areas: List[Dict], area_scores: Dict[str, Dict], map_type: str) -> Tuple[List[Dict], Dict]:
     features: List[Dict] = []
     elderly_scores = []
-    tmp_data = {}
+    tmp = {}
 
-    # 計算全區分數用於分位數判斷
     for a in areas:
         area_id = str(a.get("_id"))
         sc = area_scores.get(area_id, {})
-        elderly = calc_elderly_friendly(a, ptal_score=float(sc.get("ptal_score", 0) or 0))
-        tmp_data[area_id] = elderly
+        elderly = calc_elderly_friendly(
+            a,
+            ptal_score=float(sc.get("ptal_score", 0) or 0),
+            headway=float(sc.get("avg_headway_min", 0) or 0),
+            tph=float(sc.get("tph", 0) or 0),
+        )
+        tmp[area_id] = elderly
         elderly_scores.append(elderly["elderly_score"])
 
-    # 產生紅色漸層調色盤 (Sequential Red Gradient)
-    # 從淺紅到深紅：#fee5d9 -> #fcae91 -> #fb6a4a -> #de2d26 -> #a50f15
-    palette = ["#fee5d9", "#fcae91", "#fb6a4a", "#de2d26", "#a50f15"]
-    
     elderly_scores = [x for x in elderly_scores if x is not None]
     if elderly_scores:
         edges = list(np.quantile(elderly_scores, [0.2, 0.4, 0.6, 0.8]))
     else:
         edges = [20, 40, 60, 80]
+        
+    # MODIFIED: Changed from Diverging to Red Gradient Palette
+    palette = ["#fee5d9", "#fcae91", "#fb6a4a", "#de2d26", "#a50f15"]
 
     for a in areas:
         area_id = str(a.get("_id"))
         geom = simplify_geometry(a.get("geometry"), SIMPLIFY_STEP_FIXED)
+
         sc = area_scores.get(area_id, {"ptal_score": 0.0, "avg_headway_min": 0.0, "tph": 0.0, "n_points": 0})
-        
         ptal_score = float(sc["ptal_score"])
         grade, grade_color = ptal_grade(ptal_score)
-        
-        elderly = tmp_data.get(area_id, {"elderly_ratio_pct": 0.0, "elderly_score": 0.0, "gap": 0.0})
+
+        elderly = tmp.get(area_id, {"elderly_ratio_pct": 0.0, "elderly_score": 0.0, "gap": 0.0})
         elderly_score = float(elderly["elderly_score"])
+        elderly_ratio = float(elderly["elderly_ratio_pct"])
+        gap_val = float(elderly.get("gap", 0.0))
 
         props = {
             "area_id": area_id,
             "city": a.get("city"),
             "name": a.get("name"),
             "population_total": float(a.get("population_total", 0) or 0),
-            "elderly_ratio_pct": elderly["elderly_ratio_pct"],
+            "elderly_ratio_pct": round(elderly_ratio, 2),
             "ptal_score": round(ptal_score, 2),
             "ptal_grade": grade,
             "avg_headway_min": round(float(sc["avg_headway_min"]), 2),
             "tph": round(float(sc["tph"]), 2),
             "n_points": int(sc["n_points"]),
             "elderly_score": round(elderly_score, 2),
-            "gap": elderly["gap"],
+            "gap": round(gap_val, 2),
             "ptal_color": grade_color,
             "elderly_color": quantile_color(elderly_score, edges, palette),
         }
+
         features.append({"type": "Feature", "geometry": geom, "properties": props})
 
-    return features, {"elderly_quantile_edges": edges, "elderly_palette": palette}
+    meta = {"elderly_quantile_edges": edges, "elderly_palette": palette}
+    return features, meta
 
 # =============================================================================
-# Build Map (Legend Updated)
+# Build Map (Update Legend for Red Gradient)
 # =============================================================================
 def build_map(features: List[Dict], map_type: str, meta: Dict, *, zoom_start: int = DEFAULT_ZOOM):
     m = folium.Map(
@@ -320,44 +348,49 @@ def build_map(features: List[Dict], map_type: str, meta: Dict, *, zoom_start: in
         zoom_start=zoom_start,
         tiles="CartoDB positron",
         control_scale=True,
+        prefer_canvas=True,
     )
 
     def style_fn(feat):
         p = feat.get("properties") or {}
-        color = p.get("elderly_color") if map_type == "elderly" else p.get("ptal_color")
-        return {"fillColor": color, "color": "#4b5563", "weight": 1, "fillOpacity": 0.75}
+        color = p.get("elderly_color", "#d0d0d0") if map_type == "elderly" else p.get("ptal_color", "#d0d0d0")
+        return {"fillColor": color, "color": "#4b5563", "weight": 1, "fillOpacity": 0.70}
 
-    tooltip_fields = ["city", "name", "ptal_grade", "ptal_score", "elderly_ratio_pct", "gap", "elderly_score"]
-    tooltip_aliases = ["城市", "行政區", "PTAL等級", "PTAL分數", "65+比例(%)", "供需缺口", "友善度(0-100)"]
+    tooltip_fields = ["city", "name", "ptal_grade", "ptal_score", "tph", "avg_headway_min", "elderly_ratio_pct", "gap", "elderly_score", "n_points"]
+    tooltip_aliases = ["城市", "行政區", "PTAL等級", "PTAL分數", "每小時班次(tph)", "平均班距(min)", "65+比例(%)", "供需缺口(Gap)", "友善度(0-100)", "樣本點數"]
 
     folium.GeoJson(
         {"type": "FeatureCollection", "features": features},
+        name="Areas",
         style_function=style_fn,
         tooltip=folium.GeoJsonTooltip(fields=tooltip_fields, aliases=tooltip_aliases, sticky=True),
     ).add_to(m)
 
-    # 渲染圖例
+    # RWD Fix: 圖例 (Legend) 增加 max-width 防止在手機上爆版
     if map_type == "elderly":
         edges = meta.get("elderly_quantile_edges", [20, 40, 60, 80])
-        p = meta.get("elderly_palette", ["#fee5d9", "#fcae91", "#fb6a4a", "#de2d26", "#a50f15"])
+        # MODIFIED: Palette hex codes updated to match red gradient
+        palette = meta.get("elderly_palette", ["#fee5d9", "#fcae91", "#fb6a4a", "#de2d26", "#a50f15"])
         legend_html = f"""
         <div style="position: fixed; bottom: 30px; left: 30px; z-index:9999;
-                    background: rgba(255,255,255,0.9); padding: 12px; border-radius: 8px;
-                    box-shadow: 0 1px 6px rgba(0,0,0,0.2); font-size: 12px; color: #333;">
-          <div style="font-weight: 700; margin-bottom: 8px; border-bottom: 1px solid #ddd; padding-bottom: 4px;">老年友善度 (紅色漸層)</div>
-          <div><span style="display:inline-block;width:14px;height:14px;background:{p[0]};margin-right:6px;border:1px solid #999;"></span>低友善 (資源缺口大) ≤ {edges[0]:.1f}</div>
-          <div><span style="display:inline-block;width:14px;height:14px;background:{p[1]};margin-right:6px;border:1px solid #999;"></span>稍低 ≤ {edges[1]:.1f}</div>
-          <div><span style="display:inline-block;width:14px;height:14px;background:{p[2]};margin-right:6px;border:1px solid #999;"></span>中等 ≤ {edges[2]:.1f}</div>
-          <div><span style="display:inline-block;width:14px;height:14px;background:{p[3]};margin-right:6px;border:1px solid #999;"></span>良好 ≤ {edges[3]:.1f}</div>
-          <div><span style="display:inline-block;width:14px;height:14px;background:{p[4]};margin-right:6px;border:1px solid #999;"></span>優異 (資源充裕) &gt; {edges[3]:.1f}</div>
+                    background: rgba(255,255,255,0.95); padding: 10px 12px; border-radius: 8px;
+                    box-shadow: 0 1px 6px rgba(0,0,0,0.15); font-size: 12px; color: #333;
+                    max-width: 60vw; overflow-wrap: break-word;">
+          <div style="font-weight: 700; margin-bottom: 8px;">老年友善度 (紅色漸層)</div>
+          <div><span style="display:inline-block;width:14px;height:14px;background:{palette[0]};margin-right:6px;border:1px solid #ccc;"></span>資源極匱乏 ≤ {edges[0]:.1f}</div>
+          <div><span style="display:inline-block;width:14px;height:14px;background:{palette[1]};margin-right:6px;border:1px solid #ccc;"></span>資源不足 ≤ {edges[1]:.1f}</div>
+          <div><span style="display:inline-block;width:14px;height:14px;background:{palette[2]};margin-right:6px;border:1px solid #ccc;"></span>資源尚可 ≤ {edges[2]:.1f}</div>
+          <div><span style="display:inline-block;width:14px;height:14px;background:{palette[3]};margin-right:6px;border:1px solid #ccc;"></span>資源良好 ≤ {edges[3]:.1f}</div>
+          <div><span style="display:inline-block;width:14px;height:14px;background:{palette[4]};margin-right:6px;border:1px solid #ccc;"></span>資源充裕 &gt; {edges[3]:.1f}</div>
         </div>
         """
     else:
         legend_html = """
         <div style="position: fixed; bottom: 30px; left: 30px; z-index:9999;
-                    background: rgba(255,255,255,0.9); padding: 12px; border-radius: 8px;
-                    box-shadow: 0 1px 6px rgba(0,0,0,0.2); font-size: 12px; color: #333;">
-          <div style="font-weight: 700; margin-bottom: 8px; border-bottom: 1px solid #ddd; padding-bottom: 4px;">PTAL 運輸供給等級</div>
+                    background: rgba(255,255,255,0.95); padding: 10px 12px; border-radius: 8px;
+                    box-shadow: 0 1px 6px rgba(0,0,0,0.15); font-size: 12px; color: #333;
+                    max-width: 60vw; overflow-wrap: break-word;">
+          <div style="font-weight: 700; margin-bottom: 8px;">PTAL 供給等級</div>
           <div><span style="display:inline-block;width:14px;height:14px;background:#2ecc71;margin-right:6px;"></span>A (≥85) 極優</div>
           <div><span style="display:inline-block;width:14px;height:14px;background:#3498db;margin-right:6px;"></span>B (70-84) 優良</div>
           <div><span style="display:inline-block;width:14px;height:14px;background:#f1c40f;margin-right:6px;"></span>C (55-69) 尚可</div>
@@ -366,96 +399,177 @@ def build_map(features: List[Dict], map_type: str, meta: Dict, *, zoom_start: in
           <div><span style="display:inline-block;width:14px;height:14px;background:#7f8c8d;margin-right:6px;"></span>F (<25) 極差</div>
         </div>
         """
+
     m.get_root().html.add_child(folium.Element(legend_html))
     return m
 
 # =============================================================================
-# Main Application UI
+# New UI (Main Refactored)
 # =============================================================================
 def main():
     inject_custom_css()
     
+    # 1. Sidebar
     with st.sidebar:
         st.title("控制面板")
+        
         st.subheader("顯示設定")
         map_type_label = st.selectbox(
             "地圖著色模式", 
             list(MAP_TYPE_OPTIONS.keys()), 
-            index=1, # 預設選取老年友善
-            help="切換 PTAL 純供給觀點或考慮高齡需求的友善度觀點"
+            index=0,
+            help="選擇要在地圖上呈現的指標類型"
         )
         map_type = MAP_TYPE_OPTIONS[map_type_label]
 
         time_label = st.selectbox(
             "時段篩選", 
             list(TIME_WINDOW_OPTIONS.keys()), 
-            index=0
+            index=0,
+            help="不同時段的公車/捷運班次密度不同"
         )
         time_window = TIME_WINDOW_OPTIONS[time_label]
         
         st.divider()
-        st.caption("K.Y.E Lockers 空間決策支援系統")
+        
+        st.subheader("指標定義參考")
+        with st.expander("PTAL 供給分數 (Supply)"):
+             st.markdown(r"""
+            參考 **TfL PTAL** 精神：
+            $$ \text{Supply} = 0.55F + 0.35H + 0.1R $$
+            * F: 頻率 (Frequency)
+            * H: 班距 (Headway)
+            * R: 路線數 (Routes)
+            """)
+        
+        with st.expander("老年友善度 (Gap Model)"):
+            st.markdown(r"""
+            參考 **WHO Age-friendly Cities**：
+            $$ \text{Gap} = \text{Supply} - \text{Demand} $$
+            * Demand: 65+歲人口比例
+            * 正值：資源充裕
+            * 負值：資源匱乏
+            """)
+            
+        st.caption(f"Backend: MongoDB | Areas: CartoDB Positron")
 
+    # 2. Main Area
     st.title(APP_TITLE)
-    st.markdown(f"#### 目前檢視： **{time_label}** ｜ 模式：**{map_type_label.split(' ')[0]} (紅色漸層版)**")
+    st.markdown(f"#### 目前檢視： **{time_label}** ｜ 模式：**{map_type_label.split(' ')[0]}**")
 
-    # 數據加載與處理
+    # 載入資料
     db = get_db()
     if db is not None:
         areas = load_areas(db)
         area_scores = load_area_scores_from_mongo(db, time_window)
         features, meta = build_area_features(areas, area_scores, map_type)
-        df_all = pd.DataFrame([f['properties'] for f in features])
     else:
-        st.warning("資料庫連線中...")
-        st.stop()
+        # DB 連線失敗的 Fallback
+        areas, area_scores, features, meta = [], {}, [], {}
+        st.warning("警告：資料庫連線失敗，目前顯示空白地圖。")
 
-    # 頂部關鍵指標
+    # 全局數據卡片
+    df_all = pd.DataFrame([f['properties'] for f in features])
+    
     if not df_all.empty:
-        c1, c2, c3, c4 = st.columns(4)
-        c1.metric("分析行政區", f"{len(df_all)} 個")
-        c2.metric("平均 PTAL", f"{df_all['ptal_score'].mean():.1f}")
-        c3.metric("平均友善度", f"{df_all['elderly_score'].mean():.1f}")
-        c4.metric("平均供需缺口", f"{df_all['gap'].mean():+.1f}", delta_color="off")
-
+        avg_ptal = df_all['ptal_score'].mean()
+        avg_elderly = df_all['elderly_score'].mean()
+        avg_gap = df_all['gap'].mean()
+        
+        col_m1, col_m2, col_m3, col_m4 = st.columns(4)
+        with col_m1:
+            st.metric("分析行政區數", f"{len(df_all)} 個")
+        with col_m2:
+            st.metric("平均 PTAL 分數", f"{avg_ptal:.1f}", help="全區平均大眾運輸供給分數")
+        with col_m3:
+            st.metric("平均友善度", f"{avg_elderly:.1f}", help="全區平均老年友善分數")
+        with col_m4:
+            st.metric("平均供需缺口", f"{avg_gap:+.1f}", delta_color="off", help="正值代表供給大於需求")
+    
     st.divider()
 
-    # Tabs 分頁
-    tab_map, tab_data = st.tabs(["🗺️ 空間分佈地圖", "📊 詳細數據表"])
+    # 3. 雙視圖切換
+    tab_map, tab_data = st.tabs(["地圖探索模式", "詳細數據與查詢"])
 
+    # --- TAB 1: 地圖 ---
     with tab_map:
+        st.caption("提示：縮放地圖以查看細節，滑鼠懸停可查看該區詳細指標。")
         m = build_map(features, map_type, meta)
+        
+        # RWD FIX: 這裡使用 use_container_width=True 讓地圖適應手機寬度
         st_folium(m, height=MAP_HEIGHT, use_container_width=True, returned_objects=[])
 
+    # --- TAB 2: 查詢與列表 ---
     with tab_data:
-        q = st.text_input("搜尋行政區名稱", placeholder="輸入如：板橋、淡水...")
+        c1, c2 = st.columns([1, 2])
+        with c1:
+            st.subheader("區域快搜")
+            # 這裡保留 key 避免 focus jump
+            q = st.text_input("輸入關鍵字", placeholder="例如：板橋、三重...", help="支援模糊搜尋城市或行政區名稱", key="search_input")
         
-        if q.strip():
-            df_view = df_all[df_all["name"].str.contains(q, na=False) | df_all["city"].str.contains(q, na=False)]
-        else:
-            df_view = df_all
+        rows = []
+        for f in features:
+            p = f.get("properties") or {}
+            rows.append({
+                "城市": p.get("city"),
+                "行政區": p.get("name"),
+                "PTAL等級": p.get("ptal_grade"),
+                "PTAL分數": p.get("ptal_score"),
+                "每小時班次": p.get("tph"),
+                "平均班距(分)": p.get("avg_headway_min"),
+                "65+比例(%)": p.get("elderly_ratio_pct"),
+                "友善度分數": p.get("elderly_score"),
+                "供需缺口(Gap)": p.get("gap"),
+                "樣本點數": p.get("n_points"),
+            })
+        df = pd.DataFrame(rows)
 
-        display_cols = ["city", "name", "ptal_grade", "ptal_score", "elderly_ratio_pct", "gap", "elderly_score", "n_points"]
-        col_names = ["城市", "行政區", "PTAL", "PTAL分數", "65+比例%", "缺口值", "友善分數", "站點樣本"]
+        if q.strip():
+            qq = q.strip()
+            # 避免 DataFrame 為空時報錯
+            if not df.empty:
+                df_view = df[df["行政區"].astype(str).str.contains(qq, case=False, na=False) |
+                             df["城市"].astype(str).str.contains(qq, case=False, na=False)].copy()
+            else:
+                df_view = df.copy()
+        else:
+            df_view = df.copy()
+
+        if q.strip() and not df_view.empty:
+            st.success(f"找到 {len(df_view)} 筆關於「{q}」的結果：")
+            for _, r in df_view.head(3).iterrows():
+                with st.container():
+                    st.markdown(f"### {r['城市']} {r['行政區']}")
+                    res_c1, res_c2, res_c3, res_c4 = st.columns(4)
+                    res_c1.metric("PTAL 供給", f"{r['PTAL分數']} ({r['PTAL等級']})")
+                    res_c2.metric("老人比例", f"{r['65+比例(%)']}%")
+                    res_c3.metric("友善度", f"{r['友善度分數']}")
+                    res_c4.metric("Gap 缺口", f"{r['供需缺口(Gap)']}", 
+                                  delta=r['供需缺口(Gap)'], delta_color="normal")
+                    st.markdown("---")
         
-        df_display = df_view[display_cols].copy()
-        df_display.columns = col_names
-        
-        st.dataframe(df_display.sort_values("友善分數"), use_container_width=True, height=450)
-        
-        @st.cache_data
-        def convert_df(df): return df.to_csv(index=False).encode('utf-8-sig')
-        
-        st.download_button(
-            "下載數據 (CSV)",
-            convert_df(df_display),
-            f"transit_analysis_{time_window}.csv",
-            "text/csv"
+        st.subheader("完整數據列表")
+        st.dataframe(
+            df_view.sort_values(["城市", "行政區"]).reset_index(drop=True) if not df_view.empty else df_view,
+            use_container_width=True,
+            height=400
         )
 
+        @st.cache_data(ttl=CACHE_TTL_SECONDS)
+        def df_to_csv_bytes(_df: pd.DataFrame) -> bytes:
+            return _df.to_csv(index=False).encode("utf-8-sig")
+
+        st.download_button(
+            label="下載完整資料 (CSV)",
+            data=df_to_csv_bytes(df), # 使用完整 df
+            file_name=f"transit_data_ALL_{time_window}.csv",
+            mime="text/csv",
+        )
+
+    # 4. Footer
     st.markdown("""
         <div class="footer">
-            K.Y.E Lockers Teams | 雙北高齡運輸專題研究 © 2025
+            K.Y.E Lockers Teams | Copyright © 2025. All Rights Reserved
         </div>
     """, unsafe_allow_html=True)
 
