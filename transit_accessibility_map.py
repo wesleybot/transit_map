@@ -1,6 +1,6 @@
 # Refactored UI for professional UX with Dark Mode Support
 # Fixed: RWD Mobile responsiveness (use_container_width=True)
-# Color Update: Unified Red Gradient for both Supply (PTAL) and Elderly Friendly modes
+# Color Update: Reversed Red Gradient (Darker Red for Poorer Scores/Higher Gaps)
 
 from __future__ import annotations
 
@@ -162,7 +162,7 @@ def load_areas(_db):
     )
 
 # =============================================================================
-# Helpers (Modified ptal_grade for Red Gradient)
+# Helpers (Modified ptal_grade for Reversed Red Gradient)
 # =============================================================================
 def estimate_pop_65p(area_doc: Dict) -> float:
     pop_60_69 = float(area_doc.get("population_age_60_69", 0) or 0)
@@ -192,16 +192,16 @@ def simplify_geometry(geom: Dict, step: int) -> Dict:
 
 def ptal_grade(score: float) -> Tuple[str, str]:
     """
-    修改為紅色漸層 (Sequential Reds)
-    A (極佳) -> 深紅, F (極差) -> 極淺紅/灰色
+    反轉為紅色漸層 (Sequential Reds)
+    F (極差/供給低) -> 最紅, A (極優/供給足) -> 最淡
     """
     s = float(score or 0)
-    if s >= 85: return "A", "#a50f15"  # 深紅 (極優)
-    if s >= 70: return "B", "#de2d26"  # 中深紅 (優良)
-    if s >= 55: return "C", "#fb6a4a"  # 亮紅 (尚可)
-    if s >= 40: return "D", "#fcae91"  # 淺粉紅 (不足)
-    if s >= 25: return "E", "#fee5d9"  # 極淺粉 (匱乏)
-    return "F", "#f7f7f7"            # 灰白 (極差)
+    if s >= 85: return "A", "#f7f7f7"  # 淡色 (資源極佳)
+    if s >= 70: return "B", "#fee5d9"  # 極淺紅 (優良)
+    if s >= 55: return "C", "#fcae91"  # 淺粉紅 (尚可)
+    if s >= 40: return "D", "#fb6a4a"  # 亮紅 (不足)
+    if s >= 25: return "E", "#de2d26"  # 中深紅 (匱乏)
+    return "F", "#a50f15"            # 深紅 (極差/資源缺口最大)
 
 def quantile_color(value: float, edges: List[float], palette: List[str]) -> str:
     if value is None or (isinstance(value, float) and math.isnan(value)):
@@ -279,7 +279,7 @@ def calc_elderly_friendly(area_doc: Dict, ptal_score: float, headway: float, tph
     }
 
 # =============================================================================
-# Build GeoJSON (Using Red Gradient)
+# Build GeoJSON (Using Reversed Red Gradient Palette)
 # =============================================================================
 @st.cache_data(ttl=CACHE_TTL_SECONDS)
 def build_area_features(areas: List[Dict], area_scores: Dict[str, Dict], map_type: str) -> Tuple[List[Dict], Dict]:
@@ -305,8 +305,9 @@ def build_area_features(areas: List[Dict], area_scores: Dict[str, Dict], map_typ
     else:
         edges = [20, 40, 60, 80]
        
-    # 紅色漸層系 (Sequential Red Palette)
-    palette = ["#fee5d9", "#fcae91", "#fb6a4a", "#de2d26", "#a50f15"]
+    # 反轉紅色漸層系：讓分數低(缺口大)的排在前面，對應深色
+    # 低分 -> 深紅, 高分 -> 淺粉紅
+    palette = ["#a50f15", "#de2d26", "#fb6a4a", "#fcae91", "#fee5d9"]
 
     for a in areas:
         area_id = str(a.get("_id"))
@@ -344,7 +345,7 @@ def build_area_features(areas: List[Dict], area_scores: Dict[str, Dict], map_typ
     return features, meta
 
 # =============================================================================
-# Build Map (Full Red Gradient Integration)
+# Build Map (Full Reversed Red Gradient Integration)
 # =============================================================================
 def build_map(features: List[Dict], map_type: str, meta: Dict, *, zoom_start: int = DEFAULT_ZOOM):
     m = folium.Map(
@@ -370,37 +371,37 @@ def build_map(features: List[Dict], map_type: str, meta: Dict, *, zoom_start: in
         tooltip=folium.GeoJsonTooltip(fields=tooltip_fields, aliases=tooltip_aliases, sticky=True),
     ).add_to(m)
 
-    # 圖例渲染
+    # 圖例渲染 (修正為反轉描述)
     if map_type == "elderly":
         edges = meta.get("elderly_quantile_edges", [20, 40, 60, 80])
-        palette = meta.get("elderly_palette", ["#fee5d9", "#fcae91", "#fb6a4a", "#de2d26", "#a50f15"])
+        palette = meta.get("elderly_palette", ["#a50f15", "#de2d26", "#fb6a4a", "#fcae91", "#fee5d9"])
         legend_html = f"""
         <div style="position: fixed; bottom: 30px; left: 30px; z-index:9999;
                     background: rgba(255,255,255,0.95); padding: 10px 12px; border-radius: 8px;
                     box-shadow: 0 1px 6px rgba(0,0,0,0.15); font-size: 12px; color: #333;
                     max-width: 60vw; overflow-wrap: break-word;">
-          <div style="font-weight: 700; margin-bottom: 8px;">老年友善度 (紅色漸層)</div>
-          <div><span style="display:inline-block;width:14px;height:14px;background:{palette[0]};margin-right:6px;border:1px solid #ccc;"></span>極差 (資源缺口大) ≤ {edges[0]:.1f}</div>
+          <div style="font-weight: 700; margin-bottom: 8px;">老年友善度 (反轉紅色漸層)</div>
+          <div><span style="display:inline-block;width:14px;height:14px;background:{palette[0]};margin-right:6px;border:1px solid #ccc;"></span>極差 (資源缺口大/最紅) ≤ {edges[0]:.1f}</div>
           <div><span style="display:inline-block;width:14px;height:14px;background:{palette[1]};margin-right:6px;border:1px solid #ccc;"></span>不足 ≤ {edges[1]:.1f}</div>
           <div><span style="display:inline-block;width:14px;height:14px;background:{palette[2]};margin-right:6px;border:1px solid #ccc;"></span>尚可 ≤ {edges[2]:.1f}</div>
           <div><span style="display:inline-block;width:14px;height:14px;background:{palette[3]};margin-right:6px;border:1px solid #ccc;"></span>良好 ≤ {edges[3]:.1f}</div>
-          <div><span style="display:inline-block;width:14px;height:14px;background:{palette[4]};margin-right:6px;border:1px solid #ccc;"></span>極佳 (資源充裕) &gt; {edges[3]:.1f}</div>
+          <div><span style="display:inline-block;width:14px;height:14px;background:{palette[4]};margin-right:6px;border:1px solid #ccc;"></span>極佳 (資源充裕/最淡) &gt; {edges[3]:.1f}</div>
         </div>
         """
     else:
-        # PTAL 供給等級紅色漸層圖例
+        # PTAL 供給等級反轉圖例
         legend_html = """
         <div style="position: fixed; bottom: 30px; left: 30px; z-index:9999;
                     background: rgba(255,255,255,0.95); padding: 10px 12px; border-radius: 8px;
                     box-shadow: 0 1px 6px rgba(0,0,0,0.15); font-size: 12px; color: #333;
                     max-width: 60vw; overflow-wrap: break-word;">
-          <div style="font-weight: 700; margin-bottom: 8px;">PTAL 運輸供給等級 (紅色漸層)</div>
-          <div><span style="display:inline-block;width:14px;height:14px;background:#a50f15;margin-right:6px;"></span>A (≥85) 極優 (深紅)</div>
-          <div><span style="display:inline-block;width:14px;height:14px;background:#de2d26;margin-right:6px;"></span>B (70-84) 優良</div>
-          <div><span style="display:inline-block;width:14px;height:14px;background:#fb6a4a;margin-right:6px;"></span>C (55-69) 尚可</div>
-          <div><span style="display:inline-block;width:14px;height:14px;background:#fcae91;margin-right:6px;"></span>D (40-54) 不足</div>
-          <div><span style="display:inline-block;width:14px;height:14px;background:#fee5d9;margin-right:6px;"></span>E (25-39) 匱乏</div>
-          <div><span style="display:inline-block;width:14px;height:14px;background:#f7f7f7;margin-right:6px;border:1px solid #ddd;"></span>F (<25) 極差 (淺灰紅)</div>
+          <div style="font-weight: 700; margin-bottom: 8px;">PTAL 運輸供給等級 (反轉漸層)</div>
+          <div><span style="display:inline-block;width:14px;height:14px;background:#a50f15;margin-right:6px;"></span>F (<25) 極差 (最紅)</div>
+          <div><span style="display:inline-block;width:14px;height:14px;background:#de2d26;margin-right:6px;"></span>E (25-39) 匱乏</div>
+          <div><span style="display:inline-block;width:14px;height:14px;background:#fb6a4a;margin-right:6px;"></span>D (40-54) 不足</div>
+          <div><span style="display:inline-block;width:14px;height:14px;background:#fcae91;margin-right:6px;"></span>C (55-69) 尚可</div>
+          <div><span style="display:inline-block;width:14px;height:14px;background:#fee5d9;margin-right:6px;"></span>B (70-84) 優良</div>
+          <div><span style="display:inline-block;width:14px;height:14px;background:#f7f7f7;margin-right:6px;border:1px solid #ddd;"></span>A (≥85) 極優 (最淡)</div>
         </div>
         """
 
