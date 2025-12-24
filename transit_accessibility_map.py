@@ -1,5 +1,6 @@
 # Refactored UI for professional UX with Dark Mode Support
 # Fixed: RWD Mobile responsiveness (use_container_width=True)
+# Color Update: Unified Red Gradient for both Supply (PTAL) and Elderly Friendly modes
 
 from __future__ import annotations
 
@@ -195,12 +196,12 @@ def ptal_grade(score: float) -> Tuple[str, str]:
     A (極佳) -> 深紅, F (極差) -> 極淺紅/灰色
     """
     s = float(score or 0)
-    if s >= 85: return "A", "#a50f15"  # 深紅
-    if s >= 70: return "B", "#de2d26"  # 中深紅
-    if s >= 55: return "C", "#fb6a4a"  # 亮紅
-    if s >= 40: return "D", "#fcae91"  # 淺粉紅
-    if s >= 25: return "E", "#fee5d9"  # 極淺粉
-    return "F", "#f7f7f7"            # 灰白 (代表極低供給)
+    if s >= 85: return "A", "#a50f15"  # 深紅 (極優)
+    if s >= 70: return "B", "#de2d26"  # 中深紅 (優良)
+    if s >= 55: return "C", "#fb6a4a"  # 亮紅 (尚可)
+    if s >= 40: return "D", "#fcae91"  # 淺粉紅 (不足)
+    if s >= 25: return "E", "#fee5d9"  # 極淺粉 (匱乏)
+    return "F", "#f7f7f7"            # 灰白 (極差)
 
 def quantile_color(value: float, edges: List[float], palette: List[str]) -> str:
     if value is None or (isinstance(value, float) and math.isnan(value)):
@@ -278,7 +279,7 @@ def calc_elderly_friendly(area_doc: Dict, ptal_score: float, headway: float, tph
     }
 
 # =============================================================================
-# Build GeoJSON (Logic Unchanged)
+# Build GeoJSON (Using Red Gradient)
 # =============================================================================
 @st.cache_data(ttl=CACHE_TTL_SECONDS)
 def build_area_features(areas: List[Dict], area_scores: Dict[str, Dict], map_type: str) -> Tuple[List[Dict], Dict]:
@@ -304,7 +305,7 @@ def build_area_features(areas: List[Dict], area_scores: Dict[str, Dict], map_typ
     else:
         edges = [20, 40, 60, 80]
        
-    # 修改區塊：將原本紅黃藍色系改為紅色漸層系 (Sequential Red)
+    # 紅色漸層系 (Sequential Red Palette)
     palette = ["#fee5d9", "#fcae91", "#fb6a4a", "#de2d26", "#a50f15"]
 
     for a in areas:
@@ -343,7 +344,7 @@ def build_area_features(areas: List[Dict], area_scores: Dict[str, Dict], map_typ
     return features, meta
 
 # =============================================================================
-# Build Map (Updated Legend for Red Gradient)
+# Build Map (Full Red Gradient Integration)
 # =============================================================================
 def build_map(features: List[Dict], map_type: str, meta: Dict, *, zoom_start: int = DEFAULT_ZOOM):
     m = folium.Map(
@@ -369,7 +370,7 @@ def build_map(features: List[Dict], map_type: str, meta: Dict, *, zoom_start: in
         tooltip=folium.GeoJsonTooltip(fields=tooltip_fields, aliases=tooltip_aliases, sticky=True),
     ).add_to(m)
 
-    # RWD Fix: 圖例 (Legend) 增加 max-width 防止在手機上爆版
+    # 圖例渲染
     if map_type == "elderly":
         edges = meta.get("elderly_quantile_edges", [20, 40, 60, 80])
         palette = meta.get("elderly_palette", ["#fee5d9", "#fcae91", "#fb6a4a", "#de2d26", "#a50f15"])
@@ -378,7 +379,7 @@ def build_map(features: List[Dict], map_type: str, meta: Dict, *, zoom_start: in
                     background: rgba(255,255,255,0.95); padding: 10px 12px; border-radius: 8px;
                     box-shadow: 0 1px 6px rgba(0,0,0,0.15); font-size: 12px; color: #333;
                     max-width: 60vw; overflow-wrap: break-word;">
-          <div style="font-weight: 700; margin-bottom: 8px;">老年友善度 (紅色漸層模式)</div>
+          <div style="font-weight: 700; margin-bottom: 8px;">老年友善度 (紅色漸層)</div>
           <div><span style="display:inline-block;width:14px;height:14px;background:{palette[0]};margin-right:6px;border:1px solid #ccc;"></span>極差 (資源缺口大) ≤ {edges[0]:.1f}</div>
           <div><span style="display:inline-block;width:14px;height:14px;background:{palette[1]};margin-right:6px;border:1px solid #ccc;"></span>不足 ≤ {edges[1]:.1f}</div>
           <div><span style="display:inline-block;width:14px;height:14px;background:{palette[2]};margin-right:6px;border:1px solid #ccc;"></span>尚可 ≤ {edges[2]:.1f}</div>
@@ -387,18 +388,19 @@ def build_map(features: List[Dict], map_type: str, meta: Dict, *, zoom_start: in
         </div>
         """
     else:
+        # PTAL 供給等級紅色漸層圖例
         legend_html = """
         <div style="position: fixed; bottom: 30px; left: 30px; z-index:9999;
                     background: rgba(255,255,255,0.95); padding: 10px 12px; border-radius: 8px;
                     box-shadow: 0 1px 6px rgba(0,0,0,0.15); font-size: 12px; color: #333;
                     max-width: 60vw; overflow-wrap: break-word;">
-          <div style="font-weight: 700; margin-bottom: 8px;">PTAL 供給等級</div>
-          <div><span style="display:inline-block;width:14px;height:14px;background:#a50f15;margin-right:6px;"></span>A (≥85) 極優</div>
+          <div style="font-weight: 700; margin-bottom: 8px;">PTAL 運輸供給等級 (紅色漸層)</div>
+          <div><span style="display:inline-block;width:14px;height:14px;background:#a50f15;margin-right:6px;"></span>A (≥85) 極優 (深紅)</div>
           <div><span style="display:inline-block;width:14px;height:14px;background:#de2d26;margin-right:6px;"></span>B (70-84) 優良</div>
           <div><span style="display:inline-block;width:14px;height:14px;background:#fb6a4a;margin-right:6px;"></span>C (55-69) 尚可</div>
           <div><span style="display:inline-block;width:14px;height:14px;background:#fcae91;margin-right:6px;"></span>D (40-54) 不足</div>
           <div><span style="display:inline-block;width:14px;height:14px;background:#fee5d9;margin-right:6px;"></span>E (25-39) 匱乏</div>
-          <div><span style="display:inline-block;width:14px;height:14px;background:#f7f7f7;margin-right:6px;border:1px solid #ddd;"></span>F (<25) 極差</div>
+          <div><span style="display:inline-block;width:14px;height:14px;background:#f7f7f7;margin-right:6px;border:1px solid #ddd;"></span>F (<25) 極差 (淺灰紅)</div>
         </div>
         """
 
@@ -428,7 +430,7 @@ def main():
             "時段篩選",
             list(TIME_WINDOW_OPTIONS.keys()),
             index=0,
-            help="不同時段的公車/捷運班次密度不同"
+            help="不同時段的密度表現不同"
         )
         time_window = TIME_WINDOW_OPTIONS[time_label]
        
