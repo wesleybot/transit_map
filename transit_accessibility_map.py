@@ -161,7 +161,7 @@ def load_areas(_db):
     )
 
 # =============================================================================
-# Helpers (Logic Unchanged)
+# Helpers (Modified ptal_grade for Red Gradient)
 # =============================================================================
 def estimate_pop_65p(area_doc: Dict) -> float:
     pop_60_69 = float(area_doc.get("population_age_60_69", 0) or 0)
@@ -190,13 +190,17 @@ def simplify_geometry(geom: Dict, step: int) -> Dict:
     return g
 
 def ptal_grade(score: float) -> Tuple[str, str]:
+    """
+    修改為紅色漸層 (Sequential Reds)
+    A (極佳) -> 深紅, F (極差) -> 極淺紅/灰色
+    """
     s = float(score or 0)
-    if s >= 85: return "A", "#2ecc71"
-    if s >= 70: return "B", "#3498db"
-    if s >= 55: return "C", "#f1c40f"
-    if s >= 40: return "D", "#e67e22"
-    if s >= 25: return "E", "#c0392b"
-    return "F", "#7f8c8d"
+    if s >= 85: return "A", "#a50f15"  # 深紅
+    if s >= 70: return "B", "#de2d26"  # 中深紅
+    if s >= 55: return "C", "#fb6a4a"  # 亮紅
+    if s >= 40: return "D", "#fcae91"  # 淺粉紅
+    if s >= 25: return "E", "#fee5d9"  # 極淺粉
+    return "F", "#f7f7f7"            # 灰白 (代表極低供給)
 
 def quantile_color(value: float, edges: List[float], palette: List[str]) -> str:
     if value is None or (isinstance(value, float) and math.isnan(value)):
@@ -339,7 +343,7 @@ def build_area_features(areas: List[Dict], area_scores: Dict[str, Dict], map_typ
     return features, meta
 
 # =============================================================================
-# Build Map (Logic Unchanged)
+# Build Map (Updated Legend for Red Gradient)
 # =============================================================================
 def build_map(features: List[Dict], map_type: str, meta: Dict, *, zoom_start: int = DEFAULT_ZOOM):
     m = folium.Map(
@@ -368,7 +372,6 @@ def build_map(features: List[Dict], map_type: str, meta: Dict, *, zoom_start: in
     # RWD Fix: 圖例 (Legend) 增加 max-width 防止在手機上爆版
     if map_type == "elderly":
         edges = meta.get("elderly_quantile_edges", [20, 40, 60, 80])
-        # 修改區塊：圖例對應色版
         palette = meta.get("elderly_palette", ["#fee5d9", "#fcae91", "#fb6a4a", "#de2d26", "#a50f15"])
         legend_html = f"""
         <div style="position: fixed; bottom: 30px; left: 30px; z-index:9999;
@@ -390,12 +393,12 @@ def build_map(features: List[Dict], map_type: str, meta: Dict, *, zoom_start: in
                     box-shadow: 0 1px 6px rgba(0,0,0,0.15); font-size: 12px; color: #333;
                     max-width: 60vw; overflow-wrap: break-word;">
           <div style="font-weight: 700; margin-bottom: 8px;">PTAL 供給等級</div>
-          <div><span style="display:inline-block;width:14px;height:14px;background:#2ecc71;margin-right:6px;"></span>A (≥85) 極優</div>
-          <div><span style="display:inline-block;width:14px;height:14px;background:#3498db;margin-right:6px;"></span>B (70-84) 優良</div>
-          <div><span style="display:inline-block;width:14px;height:14px;background:#f1c40f;margin-right:6px;"></span>C (55-69) 尚可</div>
-          <div><span style="display:inline-block;width:14px;height:14px;background:#e67e22;margin-right:6px;"></span>D (40-54) 不足</div>
-          <div><span style="display:inline-block;width:14px;height:14px;background:#c0392b;margin-right:6px;"></span>E (25-39) 匱乏</div>
-          <div><span style="display:inline-block;width:14px;height:14px;background:#7f8c8d;margin-right:6px;"></span>F (<25) 極差</div>
+          <div><span style="display:inline-block;width:14px;height:14px;background:#a50f15;margin-right:6px;"></span>A (≥85) 極優</div>
+          <div><span style="display:inline-block;width:14px;height:14px;background:#de2d26;margin-right:6px;"></span>B (70-84) 優良</div>
+          <div><span style="display:inline-block;width:14px;height:14px;background:#fb6a4a;margin-right:6px;"></span>C (55-69) 尚可</div>
+          <div><span style="display:inline-block;width:14px;height:14px;background:#fcae91;margin-right:6px;"></span>D (40-54) 不足</div>
+          <div><span style="display:inline-block;width:14px;height:14px;background:#fee5d9;margin-right:6px;"></span>E (25-39) 匱乏</div>
+          <div><span style="display:inline-block;width:14px;height:14px;background:#f7f7f7;margin-right:6px;border:1px solid #ddd;"></span>F (<25) 極差</div>
         </div>
         """
 
@@ -435,7 +438,7 @@ def main():
         with st.expander("PTAL 供給分數 (Supply)"):
              st.markdown(r"""
             參考 **TfL PTAL** 精神：
-            $$ \text{Supply} = 0.55F + 0.35H + 0.1R $$
+            $$\text{Supply} = 0.55F + 0.35H + 0.1R$$
             * F: 頻率 (Frequency)
             * H: 班距 (Headway)
             * R: 路線數 (Routes)
@@ -444,7 +447,7 @@ def main():
         with st.expander("老年友善度 (Gap Model)"):
             st.markdown(r"""
             參考 **WHO Age-friendly Cities**：
-            $$ \text{Gap} = \text{Supply} - \text{Demand} $$
+            $$\text{Gap} = \text{Supply} - \text{Demand}$$
             * Demand: 65+歲人口比例
             * 正值：資源充裕
             * 負值：資源匱乏
