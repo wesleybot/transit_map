@@ -1,7 +1,31 @@
-# Enterprise-Grade Transit Accessibility Dashboard
-# K.Y.E Lockers | Professional UI/UX Design (2025)
-# Design inspired by: Notion, Linear, Stripe, Airbnb
-# Version: 4.0 Ultimate Master Edition (Full 1000+ Lines Implementation)
+#** @file transit_accessibility_map.py
+#
+#                   _oo0oo_
+#                  o8888888o
+#                  88" . "88
+#                  (| -_- |)
+#                  0\  =  /0
+#                ___/`---'\___
+#              .' \\|     |// '.
+#             / \\|||  :  |||// \
+#            / _||||| -:- |||||- \
+#           |   | \\\  -  /// |   |
+#           | \_|  ''\---/''  |_/ |
+#           \  .-\__  '-'  ___/-. /
+#         ___'. .'  /--.--\  `. .'___
+#      ."" '<  `.___\_<|>_/___.' >' "".
+#     | | :  `- \`.;`\ _ /`;.`/ - ` : | |
+#     \  \ `_.   \_ __\ /__ _/   .-` /  /
+# =====`-.____`.___ \_____/___.-`___.-'=====
+#                   `=---='
+#
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#
+#           佛祖保佑         永無 BUG
+#
+#   @author K.Y.E Lockers Team
+#   @date 2025/12/26
+#   @description 雙北高齡友善運輸地圖 主程式
 
 from __future__ import annotations
 
@@ -43,7 +67,7 @@ st.set_page_config(
     }
 )
 
-# Font Configuration
+# 字體設定
 sns.set_theme(style="whitegrid")
 plt.rcParams['font.sans-serif'] = [
     'Microsoft JhengHei', 'Arial Unicode MS', 'STHeiti', 
@@ -52,14 +76,15 @@ plt.rcParams['font.sans-serif'] = [
 plt.rcParams['axes.unicode_minus'] = False
 
 # =============================================================================
-# Session State Initialization
+#  Session State Initialization 初始化變數預設值
 # =============================================================================
+# 設定當前的分頁，預設為 0 (地圖)
 if 'active_tab_index' not in st.session_state:
     st.session_state.active_tab_index = 0
-
+# 設定搜尋文字，預設為空字串
 if 'search_query' not in st.session_state:
     st.session_state.search_query = ""
-
+# 設定強制跳轉標記，預設為 False
 if 'force_search_tab' not in st.session_state:
     st.session_state.force_search_tab = False
 
@@ -76,10 +101,10 @@ if not MONGO_URI:
     # 預設連線字串
     MONGO_URI = "mongodb+srv://11346064:Az017135@tdx-transit.hsynqmb.mongodb.net/tdx_transit?appName=TDX-Transit"
 
-CACHE_TTL_SECONDS = 3600
-SIMPLIFY_STEP_FIXED = 5
-DEFAULT_ZOOM = 11
-MAP_HEIGHT = 650
+CACHE_TTL_SECONDS = 3600 # 快取時間，預設一小時，存在記憶體裡 1 小時，這段期間內不用重複抓取。
+SIMPLIFY_STEP_FIXED = 5 # 固定簡化步長。 備註：如果一條路徑有 1000 個座標點，渲染起來會很慢。設定為 5 可能代表「每 5 個點抽樣一次」或使用某種演算法縮減點數。
+DEFAULT_ZOOM = 11 # 地圖初始化時的遠近程度
+MAP_HEIGHT = 650 # 地圖高度
 
 TIME_WINDOW_OPTIONS = {
     "平日早尖峰 (07-09)": "peak_morning",
@@ -88,7 +113,7 @@ TIME_WINDOW_OPTIONS = {
     "週末 (07-20)": "weekend",
 }
 
-# 任務 1: 地圖模式擴展
+# 地圖模式選項
 MAP_TYPE_OPTIONS = {
     "PTAL 供給分數": "ptal",
     "老年友善缺口": "elderly",
@@ -312,7 +337,7 @@ def get_db():
             db = client["tdx_transit"]
         return db
     except Exception as e:
-        st.error(f"無法連線至資料庫：{e}")
+        st.error(f"[後台警告]無法連線至資料庫：{e}")
         return None
 
 @st.cache_data(ttl=CACHE_TTL_SECONDS)
