@@ -25,7 +25,7 @@
 #
 #   @author K.Y.E Lockers Team
 #   @date 2025/12/26
-#   @description 雙北高齡友善運輸地圖 主程式 (深色模式增強版)
+#   @description 雙北高齡友善運輸地圖 主程式
 
 from __future__ import annotations
 
@@ -52,7 +52,7 @@ warnings.filterwarnings("ignore")
 # Page Configuration
 # =============================================================================
 APP_TITLE = "雙北高齡友善運輸地圖"
-APP_SUBTITLE = "K.Y.E Lockers Team | 期末資料庫管理專題"
+APP_SUBTITLE = "K.Y.E Lockers Team| 期末資料庫管理專題"
 PAGE_ICON = "🚌"
 
 st.set_page_config(
@@ -121,81 +121,205 @@ MAP_TYPE_OPTIONS = {
 }
 
 # =============================================================================
-# Professional UI/UX CSS (深度支援暗黑模式)
+# Professional UI/UX CSS
 # =============================================================================
 def inject_custom_css():
-    # 使用更高權重的選取器，並直接定義暗黑模式下的顏色覆蓋
     st.markdown("""
         <style>
+        /* === Design System Variables === */
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
         
         :root {
-            --primary: #2563eb;
-            --bg-card: #ffffff;
-            --text-title: #111827;
-            --text-body: #374151;
-            --border: #e5e7eb;
-            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            --primary-50: #eff6ff;
+            --primary-100: #dbeafe;
+            --primary-200: #bfdbfe;
+            --primary-300: #93c5fd;
+            --primary-400: #60a5fa;
+            --primary-500: #3b82f6;
+            --primary-600: #2563eb;
+            --primary-700: #1d4ed8;
+            --primary-800: #1e40af;
+            --primary-900: #1e3a8a;
+            
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-300: #d1d5db;
+            --gray-400: #9ca3af;
+            --gray-500: #6b7280;
+            --gray-600: #4b5563;
+            --gray-700: #374151;
+            --gray-800: #1f2937;
+            --gray-900: #111827;
+            
+            --success: #10b981;
+            --warning: #f59e0b;
+            --error: #ef4444;
+            --info: #3b82f6;
+            
+            --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+            --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+            
+            --radius-sm: 6px;
+            --radius-md: 8px;
+            --radius-lg: 12px;
+            --radius-xl: 16px;
+            --radius-2xl: 24px;
+            --radius-full: 9999px;
+            
+            --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+            --transition-base: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+            --transition-slow: 300ms cubic-bezier(0.4, 0, 0.2, 1);
         }
-
-        /* 強制暗黑模式選取器 - 解決反白問題 */
-        @media (prefers-color-scheme: dark) {
-            :root {
-                --bg-card: #0f172a;
-                --text-title: #f8fafc;
-                --text-body: #cbd5e1;
-                --border: #334155;
-                --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
-            }
-            
-            /* 修正 Streamlit 內建標題顏色 */
-            .stMarkdown h1, .stMarkdown h2, .stMarkdown h3 { color: #f8fafc !important; }
-            
-            /* 修正 Metric 標籤與數值 */
-            div[data-testid="stMetric"] label { color: #94a3b8 !important; }
-            div[data-testid="stMetricValue"] > div { color: #f8fafc !important; }
-            
-            /* 修正 Sidebar */
-            section[data-testid="stSidebar"] { background-color: #0f172a !important; }
-            
-            /* 修正 Tab 字體 */
-            .stTabs [data-baseweb="tab"] { color: #94a3b8 !important; }
-            .stTabs [data-baseweb="tab"][aria-selected="true"] { color: #60a5fa !important; }
+        
+        * {
+            font-family: 'Inter', 'Microsoft JhengHei', -apple-system, BlinkMacSystemFont, sans-serif;
+            letter-spacing: -0.01em;
         }
-
-        .block-container { padding: 2rem 3rem !important; }
-
-        /* 卡片統一樣式 */
-        div[data-testid="stMetric"], .search-result-card, .footer {
-            background-color: var(--bg-card) !important;
-            border: 1px solid var(--border) !important;
-            border-radius: 12px !important;
-            box-shadow: var(--shadow) !important;
-            color: var(--text-body) !important;
+        
+        .block-container {
+            padding: 2rem 3rem 3rem 3rem !important;
+            max-width: 1440px !important;
         }
-
+        
+        h1 {
+            font-size: 2.5rem !important;
+            font-weight: 800 !important;
+            line-height: 1.2 !important;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.75rem !important;
+            letter-spacing: -0.02em !important;
+        }
+        
+        h2 {
+            font-size: 1.875rem !important;
+            font-weight: 700 !important;
+            color: var(--gray-900);
+            margin-top: 2.5rem !important;
+            margin-bottom: 1rem !important;
+            letter-spacing: -0.02em !important;
+        }
+        
+        h3 {
+            font-size: 1.5rem !important;
+            font-weight: 600 !important;
+            color: var(--gray-800);
+            margin-top: 2rem !important;
+            margin-bottom: 0.75rem !important;
+        }
+        
+        p, .stMarkdown { font-size: 1rem; line-height: 1.6; color: var(--gray-700); }
+        
+        section[data-testid="stSidebar"] {
+            background: linear-gradient(180deg, 
+                rgba(255, 255, 255, 0.98) 0%, 
+                rgba(249, 250, 251, 0.98) 100%);
+            border-right: 1px solid var(--gray-200);
+            box-shadow: var(--shadow-lg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+        
+        div[data-testid="stMetric"] {
+            background: white;
+            border: 1px solid var(--gray-200);
+            padding: 1.5rem;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-sm);
+            transition: all var(--transition-base);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        div[data-testid="stMetric"]:hover {
+            border-color: var(--primary-200);
+            box-shadow: var(--shadow-md);
+            transform: translateY(-2px);
+        }
+        
+        .stTabs [data-baseweb="tab-list"] {
+            gap: 0.5rem;
+            background: transparent;
+            border-bottom: none;
+            padding: 0.5rem;
+            background: var(--gray-50);
+            border-radius: var(--radius-lg);
+        }
+        
+        .stTabs [data-baseweb="tab"] {
+            height: auto;
+            padding: 0.75rem 1.5rem;
+            background: transparent;
+            border-radius: var(--radius-md);
+            font-weight: 500;
+            font-size: 0.9375rem;
+            color: var(--gray-600);
+            transition: all var(--transition-base);
+            border: none;
+            white-space: nowrap;
+        }
+        
+        .stTabs [data-baseweb="tab"]:hover {
+            background: white;
+            color: var(--gray-900);
+            box-shadow: var(--shadow-xs);
+        }
+        
+        .stTabs [data-baseweb="tab"][aria-selected="true"] {
+            background: white;
+            color: var(--primary-600);
+            font-weight: 600;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--gray-200);
+        }
+        
         .status-badge {
-            background-color: var(--bg-card) !important;
-            border: 1px solid var(--border) !important;
-            color: var(--text-body) !important;
-            padding: 5px 15px;
-            border-radius: 20px;
-            font-size: 0.85rem;
-            display: inline-block;
-            margin-right: 10px;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            border-radius: var(--radius-full);
+            background: white;
+            border: 1px solid var(--gray-200);
+            color: var(--gray-700);
+            font-weight: 500;
+            font-size: 0.875rem;
+            box-shadow: var(--shadow-xs);
+            margin-right: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .status-badge::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary-500), var(--primary-600));
         }
 
         .search-result-card {
-            padding: 1.2rem;
+            background: white;
+            border: 1px solid var(--gray-200);
+            border-radius: var(--radius-lg);
+            padding: 1.25rem;
             margin-bottom: 1rem;
-            border-left: 5px solid var(--primary) !important;
+            box-shadow: var(--shadow-sm);
+            border-left: 4px solid var(--primary-500);
         }
-
+        
         .footer {
-            margin-top: 3rem;
-            padding: 2rem;
+            margin-top: 4rem;
+            padding: 2.5rem 2rem;
+            background: var(--gray-50);
+            border-top: 1px solid var(--gray-200);
             text-align: center;
-            font-size: 0.8rem;
+            font-size: 0.875rem;
+            color: var(--gray-600);
         }
         </style>
     """, unsafe_allow_html=True)
@@ -428,15 +552,6 @@ def render_stats_tab(db, current_time_window: str):
     st.markdown(f"### 六題暖身題：動態統計圖表")
     st.caption(f"目前時段：{display_name}")
     
-    # 針對 Plotly 圖表的深淺模式統一樣式設定
-    plotly_layout = dict(
-        height=300,
-        paper_bgcolor='rgba(0,0,0,0)',
-        plot_bgcolor='rgba(0,0,0,0)',
-        font=dict(color="#888", family="Microsoft JhengHei"),
-        margin=dict(l=20, r=20, t=50, b=20)
-    )
-    
     with st.spinner("[Status]正在產生動態統計圖表..."):
         row1_col1, row1_col2, row1_col3 = st.columns(3, gap="large")
         row2_col1, row2_col2, row2_col3 = st.columns(3, gap="large")
@@ -452,8 +567,8 @@ def render_stats_tab(db, current_time_window: str):
             df1 = pd.DataFrame(data1)
             fig1 = px.bar(df1, x="count", y="_id", orientation='h', title="Q1. 站牌數量最多行政區", 
                          labels={"count": "站牌數量", "_id": ""}, color="count", color_continuous_scale="Viridis")
-            fig1.update_layout(**plotly_layout)
-            fig1.update_layout(showlegend=False)
+            fig1.update_layout(height=300, showlegend=False, margin=dict(l=20, r=20, t=50, b=20),
+                              paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
             row1_col1.plotly_chart(fig1, use_container_width=True)
 
         # ========== Q3: 路線站點數排行 ==========
@@ -483,17 +598,55 @@ def render_stats_tab(db, current_time_window: str):
                 type='category', 
                 categoryorder='array',
                 categoryarray=df3["name_zh_wrapped"].tolist(),
-                tickfont=dict(size=11),
-                automargin=True
+                tickmode='linear', 
+                tick0=0, 
+                dtick=1,
+                tickfont=dict(size=11, family="Microsoft JhengHei, Arial"),
+                automargin=True,
+                title=None,
             )
             
-            fig3.update_layout(**plotly_layout)
+            fig3.update_traces(
+                textposition="outside",
+                textfont=dict(size=12),
+                cliponaxis=False,
+                marker=dict(line=dict(width=0)),
+            )
+            
+            min_val = df3["stop_count"].min()
+            tick0_val = (min_val // 5) * 5
+            
             fig3.update_layout(
-                margin=dict(l=120, r=100, t=50, b=20),
+                height=300,
+                bargap=0.20,
                 showlegend=False,
                 coloraxis_showscale=True,
-                coloraxis_colorbar=dict(thickness=15, len=0.7)
+                coloraxis_colorbar=dict(
+                    title=dict(
+                        text="站點數",
+                        side="right",
+                        font=dict(size=11)
+                    ),
+                    tickmode="linear",
+                    tick0=tick0_val,
+                    dtick=5,
+                    thickness=15,
+                    len=0.7,
+                    x=1.02,
+                    tickfont=dict(size=10),
+                ),
+                margin=dict(l=120, r=100, t=50, b=20),
+                paper_bgcolor='rgba(0,0,0,0)',
+                plot_bgcolor='rgba(0,0,0,0)',
+                font=dict(family="Microsoft JhengHei, sans-serif", size=12)
             )
+            
+            fig3.update_xaxes(
+                showgrid=True, 
+                gridcolor='rgba(128,128,128,0.2)', 
+                title=None
+            )
+            
             row1_col2.plotly_chart(fig3, use_container_width=True, key="q3_chart")
 
         # Q4: 客運業者佔比
@@ -506,8 +659,8 @@ def render_stats_tab(db, current_time_window: str):
         if data4:
             df4 = pd.DataFrame(data4)
             fig4 = px.pie(df4, values='count', names='_id', hole=.4, title="Q4. 營運路線業者佔比")
-            fig4.update_layout(**plotly_layout)
-            fig4.update_layout(margin=dict(l=10, r=10, t=50, b=10))
+            fig4.update_layout(height=300, margin=dict(l=10, r=10, t=50, b=10),
+                              paper_bgcolor='rgba(0,0,0,0)')
             row1_col3.plotly_chart(fig4, use_container_width=True)
 
         # Q2: 站點班次排行
@@ -521,8 +674,8 @@ def render_stats_tab(db, current_time_window: str):
             df2 = pd.DataFrame(data2)
             fig2 = px.bar(df2, x="trips", y="name", orientation='h', title="Q2. 每小時班次最多站點", 
                          labels={"trips": "班次/小時", "name": ""}, color="trips", color_continuous_scale="Magma")
-            fig2.update_layout(**plotly_layout)
-            fig2.update_layout(height=350, showlegend=False)
+            fig2.update_layout(height=350, showlegend=False, margin=dict(l=20, r=20, t=50, b=20),
+                              paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
             row2_col1.plotly_chart(fig2, use_container_width=True)
 
         # Q6: 服務水準比較 (尖峰 vs 離峰)
@@ -534,12 +687,13 @@ def render_stats_tab(db, current_time_window: str):
         ]))
         if data6:
             df6 = pd.DataFrame([{"district": i["_id"]["d"], "time": i["_id"]["t"], "score": i["score"]} for i in data6])
+            # 取平均分數最高的前 8 區
             top_districts = df6.groupby("district")["score"].mean().sort_values(ascending=False).index[:8]
             fig6 = px.bar(df6[df6["district"].isin(top_districts)], x="district", y="score", color="time", 
                          barmode="group", title="Q6. 各區尖峰 vs 離峰 供給分數",
                          labels={"score": "平均供給分數", "district": ""})
-            fig6.update_layout(**plotly_layout)
-            fig6.update_layout(height=350)
+            fig6.update_layout(height=350, margin=dict(l=20, r=20, t=50, b=20),
+                              paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
             row2_col2.plotly_chart(fig6, use_container_width=True)
 
         # Q5: 服務等級比例 (A-F)
@@ -552,8 +706,8 @@ def render_stats_tab(db, current_time_window: str):
             df5 = pd.DataFrame(data5).dropna()
             fig5 = px.pie(df5, values='count', names='_id', hole=.4, title="Q5. 服務等級比例分佈",
                          color_discrete_sequence=px.colors.qualitative.Pastel)
-            fig5.update_layout(**plotly_layout)
-            fig5.update_layout(height=350, margin=dict(l=10, r=10, t=50, b=10))
+            fig5.update_layout(height=350, margin=dict(l=10, r=10, t=50, b=10),
+                              paper_bgcolor='rgba(0,0,0,0)')
             row2_col3.plotly_chart(fig5, use_container_width=True)
 
 # =============================================================================
@@ -637,20 +791,25 @@ def build_area_features(areas: List[Dict], area_scores: Dict[str, Dict], map_typ
 # Build Folium Map
 # =============================================================================
 # 地圖基礎設定
+# 中心點：設定在 [25.05, 121.53]（大約是台北市中心）
+# 底圖風格：使用 CartoDB positron，這是簡潔、淺白色ㄉ地圖，適合用來突顯有顏色的行政區區塊。
 def build_map(features: List[Dict], map_type: str, meta: Dict, *, zoom_start: int = DEFAULT_ZOOM):
-    # 底圖風格：使用 CartoDB positron 適合淺/深通吃
     m = folium.Map(location=[25.05, 121.53], zoom_start=zoom_start, tiles="CartoDB positron", control_scale=True, prefer_canvas=True)
     
     # 上色邏輯
+    # 如果 map_type 是 「老年友善」，就讀取 elderly_color；否則讀取 ptal_color。
+    # 區塊半透明度設定是 0.70，這樣就還可以看到底圖的路名。
     def style_fn(feat):
         p = feat.get("properties") or {}
         color = p.get("elderly_color") if map_type == "elderly" else p.get("ptal_color")
         return {"fillColor": color, "color": "#4b5563", "weight": 1, "fillOpacity": 0.70}
     
     # 懸浮提示分流
+    # 國際模式 (ptal_intl)：顯示五項資訊。
     if map_type == "ptal_intl":
         tooltip_fields = ["city", "name", "intl_grade", "intl_ai", "intl_n"]
         tooltip_aliases = ["城市", "行政區", "國際等級(0-6b)", "AI可及性指數", "覆蓋網格數"]
+    # 一般模式 (預設)：顯示 10 項詳細資訊。
     else:
         tooltip_fields = ["city", "name", "ptal_grade", "ptal_score", "tph", "avg_headway_min", "elderly_ratio_pct", "gap", "elderly_score", "n_points"]
         tooltip_aliases = ["城市", "行政區", "PTAL等級", "PTAL分數", "每小時班次", "平均班距(min)", "65+比例(%)", "供需缺口", "友善度", "樣本點數"]
@@ -662,24 +821,21 @@ def build_map(features: List[Dict], map_type: str, meta: Dict, *, zoom_start: in
         tooltip=folium.GeoJsonTooltip(fields=tooltip_fields, aliases=tooltip_aliases, sticky=True),
     ).add_to(m)
     
-    # 動態圖例切換 (支援暗黑模式)
-    # 這裡的 HTML 會被注入，我們使用內嵌 CSS 變數配合外部 inject 的變數
-    legend_style = "position: fixed; bottom: 30px; left: 30px; z-index:9999; background: var(--bg-card, #ffffff); color: var(--text-body, #333333); padding: 15px; border-radius: 12px; box-shadow: var(--shadow); font-size: 13px; border: 1px solid var(--border, #e5e7eb);"
-    
+    # 動態圖例切換
     if map_type == "ptal_intl":
-        legend_html = f"""
-        <div style="{legend_style} width: 180px;">
-          <b style="font-size: 13px;">國際 PTAL 標準 (0-6b)</b><br><br>
+        legend_html = """
+        <div style="position: fixed; bottom: 30px; left: 30px; z-index:9999; background: white; padding: 15px; border-radius: 12px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); font-size: 11px; font-family: 'Inter', sans-serif; border: 1px solid #e5e7eb; width: 180px;">
+          <b style="font-size: 13px; color: #1f2937;">國際 PTAL 標準 (0-6b)</b><br><br>
           <div style="display: flex; flex-wrap: wrap; gap: 4px;">
-            <div style="display: flex; align-items: center; width: 45%;"><i style="background:#31a354;width:12px;height:12px;display:inline-block;"></i><span style="margin-left: 4px; font-size: 11px;">6b</span></div>
-            <div style="display: flex; align-items: center; width: 45%;"><i style="background:#009900;width:12px;height:12px;display:inline-block;"></i><span style="margin-left: 4px; font-size: 11px;">6a</span></div>
-            <div style="display: flex; align-items: center; width: 45%;"><i style="background:#99CC00;width:12px;height:12px;display:inline-block;"></i><span style="margin-left: 4px; font-size: 11px;">5</span></div>
-            <div style="display: flex; align-items: center; width: 45%;"><i style="background:#FFCC00;width:12px;height:12px;display:inline-block;"></i><span style="margin-left: 4px; font-size: 11px;">4</span></div>
-            <div style="display: flex; align-items: center; width: 45%;"><i style="background:#FF6600;width:12px;height:12px;display:inline-block;"></i><span style="margin-left: 4px; font-size: 11px;">3</span></div>
-            <div style="display: flex; align-items: center; width: 45%;"><i style="background:#D60000;width:12px;height:12px;display:inline-block;"></i><span style="margin-left: 4px; font-size: 11px;">2</span></div>
-            <div style="display: flex; align-items: center; width: 45%;"><i style="background:#9E001E;width:12px;height:12px;display:inline-block;"></i><span style="margin-left: 4px; font-size: 11px;">1b</span></div>
-            <div style="display: flex; align-items: center; width: 45%;"><i style="background:#7A0019;width:12px;height:12px;display:inline-block;"></i><span style="margin-left: 4px; font-size: 11px;">1a</span></div>
-            <div style="display: flex; align-items: center; width: 45%;"><i style="background:#E0E0E0;width:12px;height:12px;display:inline-block;"></i><span style="margin-left: 4px; font-size: 11px;">0</span></div>
+            <div style="display: flex; align-items: center; width: 45%;"><i style="background:#31a354;width:12px;height:12px;display:inline-block;"></i><span style="margin-left: 4px;">6b</span></div>
+            <div style="display: flex; align-items: center; width: 45%;"><i style="background:#009900;width:12px;height:12px;display:inline-block;"></i><span style="margin-left: 4px;">6a</span></div>
+            <div style="display: flex; align-items: center; width: 45%;"><i style="background:#99CC00;width:12px;height:12px;display:inline-block;"></i><span style="margin-left: 4px;">5 (優)</span></div>
+            <div style="display: flex; align-items: center; width: 45%;"><i style="background:#FFCC00;width:12px;height:12px;display:inline-block;"></i><span style="margin-left: 4px;">4 (良)</span></div>
+            <div style="display: flex; align-items: center; width: 45%;"><i style="background:#FF6600;width:12px;height:12px;display:inline-block;"></i><span style="margin-left: 4px;">3 (可)</span></div>
+            <div style="display: flex; align-items: center; width: 45%;"><i style="background:#D60000;width:12px;height:12px;display:inline-block;"></i><span style="margin-left: 4px;">2 (不足)</span></div>
+            <div style="display: flex; align-items: center; width: 45%;"><i style="background:#9E001E;width:12px;height:12px;display:inline-block;"></i><span style="margin-left: 4px;">1b</span></div>
+            <div style="display: flex; align-items: center; width: 45%;"><i style="background:#7A0019;width:12px;height:12px;display:inline-block;"></i><span style="margin-left: 4px;">1a</span></div>
+            <div style="display: flex; align-items: center; width: 45%;"><i style="background:#E0E0E0;width:12px;height:12px;display:inline-block;"></i><span style="margin-left: 4px;">0</span></div>
           </div>
         </div>
         """
@@ -687,8 +843,8 @@ def build_map(features: List[Dict], map_type: str, meta: Dict, *, zoom_start: in
         edges = meta.get("elderly_quantile_edges", [20, 40, 60, 80])
         palette = meta.get("elderly_palette", ["#a50f15", "#de2d26", "#fb6a4a", "#fcae91", "#fee5d9"])
         legend_html = f"""
-        <div style="{legend_style}">
-          <b>老年友善度分級</b><br><br>
+        <div style="position: fixed; bottom: 30px; left: 30px; z-index:9999; background: white; padding: 15px; border-radius: 12px; font-size: 13px; border: 1px solid #e5e7eb;">
+          <b style="color: #1f2937;">老年友善度分級</b><br><br>
           <i style="background:{palette[0]};width:20px;height:14px;display:inline-block;border-radius:4px;"></i> 極差 ≤ {edges[0]:.1f}<br>
           <i style="background:{palette[1]};width:20px;height:14px;display:inline-block;border-radius:4px;"></i> 不足 ≤ {edges[1]:.1f}<br>
           <i style="background:{palette[2]};width:20px;height:14px;display:inline-block;border-radius:4px;"></i> 尚可 ≤ {edges[2]:.1f}<br>
@@ -697,9 +853,9 @@ def build_map(features: List[Dict], map_type: str, meta: Dict, *, zoom_start: in
         </div>
         """
     else:
-        legend_html = f"""
-        <div style="{legend_style}">
-          <b>PTAL 運輸供給等級</b><br><br>
+        legend_html = """
+        <div style="position: fixed; bottom: 30px; left: 30px; z-index:9999; background: white; padding: 15px; border-radius: 12px; font-size: 13px; border: 1px solid #e5e7eb;">
+          <b style="color: #1f2937;">PTAL 運輸供給等級</b><br><br>
           <i style="background:#f7f7f7;width:20px;height:14px;display:inline-block;border-radius:4px;border:1px solid #ddd;"></i> A (極優)<br>
           <i style="background:#fee5d9;width:20px;height:14px;display:inline-block;border-radius:4px;"></i> B (優良)<br>
           <i style="background:#fcae91;width:20px;height:14px;display:inline-block;border-radius:4px;"></i> C (尚可)<br>
@@ -715,6 +871,7 @@ def build_map(features: List[Dict], map_type: str, meta: Dict, *, zoom_start: in
 # =============================================================================
 # Main Application
 # =============================================================================
+# 總店長大腦
 def main():
     inject_custom_css()
     db = get_db()
@@ -778,9 +935,7 @@ def main():
     if not df_metrics.empty:
         c1, c2, c3, c4 = st.columns(4)
         c1.metric("行政區數", f"{len(df_metrics)}")
-        # 注意：df_metrics['ptal_score'] 可能有時會因為模式切換而不同，這裡做安全處理
-        avg_ptal = df_metrics['ptal_score'].mean() if 'ptal_score' in df_metrics.columns else 0
-        c2.metric("平均供給", f"{avg_ptal:.1f}", help="PTAL 分數平均 (0-100)")
+        c2.metric("平均供給", f"{df_metrics['ptal_score'].mean():.1f}", help="PTAL 分數平均 (0-100)")
         c3.metric("平均友善度", f"{df_metrics['elderly_score'].mean():.1f}")
         c4.metric("平均缺口", f"{df_metrics['gap'].mean():+.1f}")
     st.markdown("---")
@@ -819,10 +974,7 @@ def main():
                 st.markdown('</div>', unsafe_allow_html=True)
         
         st.markdown("#### 完整資料表")
-        # 移除地圖顏色等雜項欄位再顯示
-        drop_cols = ["area_id", "ptal_color", "elderly_color", "intl_grade", "intl_ai", "intl_n"]
-        df_table = df_disp.drop(columns=[c for c in drop_cols if c in df_disp.columns])
-        st.dataframe(df_table, use_container_width=True, height=400)
+        st.dataframe(df_disp.drop(columns=["area_id", "ptal_color", "elderly_color", "intl_grade", "intl_ai", "intl_n"]), use_container_width=True, height=400)
         
         csv = df_disp.to_csv(index=False).encode('utf-8-sig')
         st.download_button("下載資料 (CSV)", csv, f"transit_data_{time_window}.csv", "text/csv", use_container_width=True)
