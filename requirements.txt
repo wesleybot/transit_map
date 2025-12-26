@@ -6,3 +6,4 @@ python-dotenv>=1.0
 pandas>=2.0
 numpy>=1.24
 matplotlib
+seaborn
