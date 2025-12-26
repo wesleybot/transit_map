@@ -353,11 +353,18 @@ def load_areas(_db):
 # =============================================================================
 # Helper Functions
 # =============================================================================
+
+
+# 自動換行函式，每5個字就換行。 >>> 在統計儀表板的Q3圖表中使用。
 def wrap_text_plotly(text, width=5):
     if not isinstance(text, str): return str(text)
     if len(text) <= width: return text
     return '<br>'.join([text[i:i+width] for i in range(0, len(text), width)])
 
+
+# 估算 65 歲以上人口
+# 公式：70-79 + 80-89 + 90-99 + 100 + + 0.5 * (60-69)
+# 備註：假設 60~69 歲的人口中，有一半（0.5）是 65 歲以上的。這是一種常見的統計推估手法。
 def estimate_pop_65p(area_doc: Dict) -> float:
     pop_60_69 = float(area_doc.get("population_age_60_69", 0) or 0)
     pop_70_79 = float(area_doc.get("population_age_70_79", 0) or 0)
@@ -366,6 +373,10 @@ def estimate_pop_65p(area_doc: Dict) -> float:
     pop_100p = float(area_doc.get("population_age_100_plus", 0) or 0)
     return pop_70_79 + pop_80_89 + pop_90_99 + pop_100p + 0.5 * pop_60_69
 
+
+# 簡化座標!!!會根我設定的step來變化。
+# 備註：例如每 5 個點抓一個。 >>> 確保「封閉圖形」的特性：如果起點和終點不一樣，它會手動把起點補在最後面，確保邊界是閉合的。
+# 在105行"SIMPLIFY_STEP_FIXED"有設定這個step的值。
 def simplify_coords(coords, step: int):
     if not coords: return coords
     if isinstance(coords[0], (float, int)): return coords
@@ -383,7 +394,8 @@ def simplify_geometry(geom: Dict, step: int) -> Dict:
         g["coordinates"] = simplify_coords(g["coordinates"], step)
     return g
 
-# 保留原本 A-F 等級邏輯
+
+# PTAL A-F 等級邏輯
 def ptal_grade(score: float) -> Tuple[str, str]:
     s = float(score or 0)
     if s >= 85: return "A", "#f7f7f7"
@@ -393,7 +405,8 @@ def ptal_grade(score: float) -> Tuple[str, str]:
     if s >= 25: return "E", "#de2d26"
     return "F", "#a50f15"
 
-# 任務 3: 新增 0-6b 分級函數 (僅供國際模式)
+
+# 0-6b 分級函數 (僅供國際模式)
 def get_ptal_intl_info(ai: float) -> Tuple[str, str]:
     ai = float(ai or 0)
     if ai == 0:    return "0", "#E0E0E0"
@@ -417,11 +430,11 @@ def quantile_color(value: float, edges: List[float], palette: List[str]) -> str:
 # =============================================================================
 @st.cache_data(ttl=CACHE_TTL_SECONDS)
 def load_area_scores_from_mongo(_db, time_window: str) -> Dict[str, Dict]:
-    """原本的 A-F 數據載入邏輯"""
+    """A-F 數據載入邏輯"""
     if _db is None: return {}
     def run(mode: str, foreign_field: str):
         pipeline = [
-            {"$match": {"time_window": time_window, "join_mode": mode}},
+            {"$match": {"time_window": time_window, "join_mode": mode, "avg_headway_min": {"$gt": 0}}},
             {"$project": {"join_key": 1, "supply_score": 1, "avg_headway_min": 1, "total_trips_per_hour": 1}},
             {"$lookup": {"from": "stations", "localField": "join_key", "foreignField": foreign_field, "as": "st"}},
             {"$unwind": {"path": "$st", "preserveNullAndEmptyArrays": False}},
@@ -461,7 +474,7 @@ def load_area_scores_from_mongo(_db, time_window: str) -> Dict[str, Dict]:
 
 @st.cache_data(ttl=CACHE_TTL_SECONDS)
 def load_area_intl_scores(_db, time_window: str) -> Dict[str, Dict]:
-    """[新增] 國際標準數據 (3.7萬網格) 聚合邏輯"""
+    """國際標準數據 (3.7萬網格) 聚合邏輯"""
     if _db is None: return {}
     pipeline = [
         {"$match": {"time_window": time_window, "district": {"$exists": True}}},
@@ -481,8 +494,13 @@ def load_area_intl_scores(_db, time_window: str) -> Dict[str, Dict]:
         } for r in results if areas_lookup.get(f"{r.get('city')}:{r['_id']}")
     }
 
+
+# 簡單來說：這個地方老人很多，但公車/捷運夠方便嗎？
+# 計算老年人口比例 (elderly_ratio)
+#   呼叫了第368行的 estimate_pop_65p 函式來取得 65 歲以上人數。
+#   公式：elderly_ratio = (pop_65p->老年人口 / pop_total -> ) * 100%
 def calc_elderly_friendly(area_doc: Dict, ptal_score: float, headway: float, tph: float) -> Dict:
-    """計算老年友善度指標 (原本的邏輯)"""
+    """計算老年友善度指標"""
     pop_total = float(area_doc.get("population_total", 0) or 0)
     pop_65p = estimate_pop_65p(area_doc)
     elderly_ratio = (pop_65p / pop_total * 100.0) if pop_total > 0 else 0.0
