@@ -1,0 +1,4 @@
+.git
+.streamlit
+__pycache__
+venv/
