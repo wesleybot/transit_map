@@ -494,11 +494,31 @@ def load_area_intl_scores(_db, time_window: str) -> Dict[str, Dict]:
         } for r in results if areas_lookup.get(f"{r.get('city')}:{r['_id']}")
     }
 
-
+#=============================================================================
 # 簡單來說：這個地方老人很多，但公車/捷運夠方便嗎？
 # 計算老年人口比例 (elderly_ratio)
 #   呼叫了第368行的 estimate_pop_65p 函式來取得 65 歲以上人數。
 #   公式：elderly_ratio = (pop_65p->老年人口 / pop_total -> ) * 100%
+
+# 計算需求強度 (demand_score) ——「老人越多，需求越高」
+#   公式：demand_score = min(100, max(0, (elderly_ratio - 5) / (20 - 5) * 100))
+#   備註：
+        # 如果老年比例低於 5%，需求分數就是 0。
+        # 如果老年比例高於 20%，需求分數就是 100（封頂）。
+        # 在 5% 到 20% 之間，比例越高，需求分數就線性成長
+
+# 計算落差 (raw_gap)
+#   公式：raw_gap = 交通便利ptal_score - 需求分數demand_score
+#   備註：
+        # 正值：交通服務優於人口需求。
+        # 負值：交通服務跟不上老年人口需求。
+
+# 計算最終友善度分數 (elderly_score)
+#   公式：final_score = max(0, min(100, 60 + (落差raw_gap * 0.8)))
+#   備註：  
+        # 基準點是 60 分：當交通供給與需求剛剛好平衡時（Gap = 0），該區拿到 60 分。 >>> 會是60分，單純就是因為台灣人覺得60分剛好及格。
+        # 加減分制：交通越方便就往上加分，交通越爛就往下扣分。
+#=============================================================================
 def calc_elderly_friendly(area_doc: Dict, ptal_score: float, headway: float, tph: float) -> Dict:
     """計算老年友善度指標"""
     pop_total = float(area_doc.get("population_total", 0) or 0)
@@ -520,7 +540,7 @@ def calc_elderly_friendly(area_doc: Dict, ptal_score: float, headway: float, tph
 # =============================================================================
 def render_stats_tab(db, current_time_window: str):
     if db is None:
-        st.warning("無法載入統計數據：資料庫未連線")
+        st.warning("[Status]無法載入統計數據：資料庫未連線")
         return
     
     display_name = "未選取"
@@ -529,10 +549,10 @@ def render_stats_tab(db, current_time_window: str):
             display_name = label
             break
             
-    st.markdown(f"### 雙北運輸數據綜合統計儀表板")
+    st.markdown(f"### 六題暖身題：動態統計圖表")
     st.caption(f"目前時段：{display_name}")
     
-    with st.spinner("正在產生動態統計圖表..."):
+    with st.spinner("[Status]正在產生動態統計圖表..."):
         row1_col1, row1_col2, row1_col3 = st.columns(3, gap="large")
         row2_col1, row2_col2, row2_col3 = st.columns(3, gap="large")
         
