@@ -52,7 +52,7 @@ warnings.filterwarnings("ignore")
 # Page Configuration
 # =============================================================================
 APP_TITLE = "雙北高齡友善運輸地圖"
-APP_SUBTITLE = "K.Y.E Lockers | 數據驅動的城市運輸分析平台"
+APP_SUBTITLE = "K.Y.E Lockers Team| 期末資料庫管理專題"
 PAGE_ICON = "🚌"
 
 st.set_page_config(
@@ -713,7 +713,9 @@ def render_stats_tab(db, current_time_window: str):
 # =============================================================================
 # Build GeoJSON Features (核心分流邏輯)
 # =============================================================================
-@st.cache_data(ttl=CACHE_TTL_SECONDS)
+
+# Streamlit 的快取指令
+@st.cache_data(ttl=CACHE_TTL_SECONDS) # 從記憶體抓上次算好的結果，不用再算一次。
 def build_area_features(areas: List[Dict], area_scores: Dict[str, Dict], map_type: str, intl_scores: Dict[str, Dict] = None) -> Tuple[List[Dict], Dict]:
     features: List[Dict] = []
     elderly_scores = []
@@ -728,6 +730,8 @@ def build_area_features(areas: List[Dict], area_scores: Dict[str, Dict], map_typ
         elderly_scores.append(elderly["elderly_score"])
     
     valid_elderly = [x for x in elderly_scores if x is not None]
+
+    # 地圖上的「紅、黃、綠」顏色深淺分界點，切成五等份（20% 一組）。
     edges = list(np.quantile(valid_elderly, [0.2, 0.4, 0.6, 0.8])) if valid_elderly else [20, 40, 60, 80]
     palette = ["#a50f15", "#de2d26", "#fb6a4a", "#fcae91", "#fee5d9"]
     
@@ -744,10 +748,11 @@ def build_area_features(areas: List[Dict], area_scores: Dict[str, Dict], map_typ
             intl_ai = isc["accessibility_index"]
             intl_n = isc["n_points"]
         else:
-            # 原本模式：使用 A-F 邏輯
+            # [預設就是那個PTAL]原本模式：使用 A-F 邏輯
             grade_str, main_color = ptal_grade(orig_sc["ptal_score"])
             intl_ai, intl_n = 0.0, 0
         
+        # 建立 GeoJSON 屬性
         props = {
             "area_id": area_id,
             "city": a.get("city"),
@@ -761,14 +766,19 @@ def build_area_features(areas: List[Dict], area_scores: Dict[str, Dict], map_typ
             "gap": elderly["gap"],
             "elderly_score": elderly["elderly_score"],
             "n_points": orig_sc["n_points"],
+
+            # ptal_color / elderly_color：地圖圖層填滿的顏色。
             "ptal_color": main_color,
             "elderly_color": quantile_color(elderly["elderly_score"], edges, palette),
             # 任務 5: 國際模式專屬欄位
             "intl_grade": grade_str,
+
+            # intl_ai / intl_grade：國際模式專用的評分指標。
             "intl_ai": round(intl_ai, 2),
             "intl_n": intl_n
         }
         
+        # simplify_geometry丟喜上面的 SIMPLIFY_STEP_FIXED，在最後輸出前把座標點減量，確保地圖跑得順。
         features.append({
             "type": "Feature", 
             "geometry": simplify_geometry(a.get("geometry"), SIMPLIFY_STEP_FIXED), 
@@ -780,20 +790,27 @@ def build_area_features(areas: List[Dict], area_scores: Dict[str, Dict], map_typ
 # =============================================================================
 # Build Folium Map
 # =============================================================================
+# 地圖基礎設定
+# 中心點：設定在 [25.05, 121.53]（大約是台北市中心）
+# 底圖風格：使用 CartoDB positron，這是簡潔、淺白色ㄉ地圖，適合用來突顯有顏色的行政區區塊。
 def build_map(features: List[Dict], map_type: str, meta: Dict, *, zoom_start: int = DEFAULT_ZOOM):
     m = folium.Map(location=[25.05, 121.53], zoom_start=zoom_start, tiles="CartoDB positron", control_scale=True, prefer_canvas=True)
     
+    # 上色邏輯
+    # 如果 map_type 是 「老年友善」，就讀取 elderly_color；否則讀取 ptal_color。
+    # 區塊半透明度設定是 0.70，這樣就還可以看到底圖的路名。
     def style_fn(feat):
         p = feat.get("properties") or {}
         color = p.get("elderly_color") if map_type == "elderly" else p.get("ptal_color")
         return {"fillColor": color, "color": "#4b5563", "weight": 1, "fillOpacity": 0.70}
     
-    # 任務 5: 懸浮提示分流 (原本的完全不動)
+    # 懸浮提示分流
+    # 國際模式 (ptal_intl)：顯示五項資訊。
     if map_type == "ptal_intl":
         tooltip_fields = ["city", "name", "intl_grade", "intl_ai", "intl_n"]
         tooltip_aliases = ["城市", "行政區", "國際等級(0-6b)", "AI可及性指數", "覆蓋網格數"]
+    # 一般模式 (預設)：顯示 10 項詳細資訊。
     else:
-        # 原原本本那 10 個欄位，連順序都沒變
         tooltip_fields = ["city", "name", "ptal_grade", "ptal_score", "tph", "avg_headway_min", "elderly_ratio_pct", "gap", "elderly_score", "n_points"]
         tooltip_aliases = ["城市", "行政區", "PTAL等級", "PTAL分數", "每小時班次", "平均班距(min)", "65+比例(%)", "供需缺口", "友善度", "樣本點數"]
     
@@ -804,7 +821,7 @@ def build_map(features: List[Dict], map_type: str, meta: Dict, *, zoom_start: in
         tooltip=folium.GeoJsonTooltip(fields=tooltip_fields, aliases=tooltip_aliases, sticky=True),
     ).add_to(m)
     
-    # 任務 4: 動態圖例切換
+    # 動態圖例切換
     if map_type == "ptal_intl":
         legend_html = """
         <div style="position: fixed; bottom: 30px; left: 30px; z-index:9999; background: white; padding: 15px; border-radius: 12px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); font-size: 11px; font-family: 'Inter', sans-serif; border: 1px solid #e5e7eb; width: 180px;">
@@ -854,6 +871,7 @@ def build_map(features: List[Dict], map_type: str, meta: Dict, *, zoom_start: in
 # =============================================================================
 # Main Application
 # =============================================================================
+# 總店長大腦
 def main():
     inject_custom_css()
     db = get_db()
@@ -903,7 +921,7 @@ def main():
     
     # ========== Load Data ==========
     if db is not None:
-        with st.spinner("同步數據中..."):
+        with st.spinner("[Status]同步數據中..."):
             areas = load_areas(db)
             area_scores = load_area_scores_from_mongo(db, time_window)
             # 只有當選擇國際標準時，才去查詢 3.7 萬網格表
@@ -968,7 +986,7 @@ def main():
     # ========== Footer ==========
     st.markdown("""
     <div class="footer">
-        <strong>K.Y.E Lockers Team 2025</strong> | 數據驅動的城市運輸分析平台<br>
+        <strong>K.Y.E Lockers Team 2025</strong> | 雙北高齡友善運輸地圖分析平台<br>
         基於 PTAL Grid 250m Standard (37,516 個運算點) | © 2025 All Rights Reserved
     </div>
     """, unsafe_allow_html=True)
