@@ -25,7 +25,7 @@
 #
 #   @author K.Y.E Lockers Team
 #   @date 2025/12/26
-#   @description 雙北高齡友善運輸地圖 主程式 (已整合暗黑模式支援)
+#   @description 雙北高齡友善運輸地圖 主程式 (深色模式增強版)
 
 from __future__ import annotations
 
@@ -121,171 +121,81 @@ MAP_TYPE_OPTIONS = {
 }
 
 # =============================================================================
-# Professional UI/UX CSS (支援自動暗黑模式切換)
+# Professional UI/UX CSS (深度支援暗黑模式)
 # =============================================================================
 def inject_custom_css():
+    # 使用更高權重的選取器，並直接定義暗黑模式下的顏色覆蓋
     st.markdown("""
         <style>
-        /* === Design System Variables & Theme Support === */
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
         
         :root {
-            /* 主要色調 */
-            --primary-500: #3b82f6;
-            --primary-600: #2563eb;
-            
-            /* 預設：明亮模式顏色 */
+            --primary: #2563eb;
             --bg-card: #ffffff;
-            --bg-sidebar: rgba(255, 255, 255, 0.98);
             --text-title: #111827;
-            --text-main: #374151;
-            --text-muted: #6b7280;
-            --border-color: #e5e7eb;
+            --text-body: #374151;
+            --border: #e5e7eb;
             --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-            --status-bg: #ffffff;
-        }
-        
-        /* 當系統/Streamlit 切換為暗黑模式時自動變更變數 */
-        @media (prefers-color-scheme: dark) {
-            :root {
-                --bg-card: #1e293b;
-                --bg-sidebar: rgba(15, 23, 42, 0.98);
-                --text-title: #f9fafb;
-                --text-main: #d1d5db;
-                --text-muted: #9ca3af;
-                --border-color: #334155;
-                --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
-                --status-bg: #1e293b;
-            }
-        }
-        
-        * {
-            font-family: 'Inter', 'Microsoft JhengHei', -apple-system, BlinkMacSystemFont, sans-serif;
-            letter-spacing: -0.01em;
-        }
-        
-        .block-container {
-            padding: 2rem 3rem 3rem 3rem !important;
-            max-width: 1440px !important;
-        }
-        
-        h1 {
-            font-size: 2.5rem !important;
-            font-weight: 800 !important;
-            line-height: 1.2 !important;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            margin-bottom: 0.75rem !important;
-            letter-spacing: -0.02em !important;
-        }
-        
-        h2, h3 { 
-            color: var(--text-title) !important; 
-            letter-spacing: -0.02em !important;
-        }
-        
-        p, .stMarkdown { 
-            font-size: 1rem; 
-            line-height: 1.6; 
-            color: var(--text-main) !important; 
-        }
-        
-        /* Sidebar 側邊欄修正 */
-        section[data-testid="stSidebar"] {
-            background: var(--bg-sidebar) !important;
-            border-right: 1px solid var(--border-color);
-            box-shadow: var(--shadow);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-        }
-        
-        /* Metric 卡片修正 (解決暗黑模式反白問題) */
-        div[data-testid="stMetric"] {
-            background: var(--bg-card) !important;
-            border: 1px solid var(--border-color) !important;
-            padding: 1.5rem;
-            border-radius: 12px;
-            box-shadow: var(--shadow);
-            transition: all 200ms;
-        }
-        
-        div[data-testid="stMetric"] label {
-            color: var(--text-muted) !important;
-        }
-        
-        div[data-testid="stMetricValue"] {
-            color: var(--text-title) !important;
-        }
-        
-        /* Tabs 分頁標籤修正 */
-        .stTabs [data-baseweb="tab-list"] {
-            gap: 0.5rem;
-            padding: 0.5rem;
-            background: var(--border-color) !important;
-            border-radius: 12px;
-        }
-        
-        .stTabs [data-baseweb="tab"] {
-            background: transparent;
-            color: var(--text-muted) !important;
-            font-weight: 500;
-        }
-        
-        .stTabs [data-baseweb="tab"][aria-selected="true"] {
-            background: var(--bg-card) !important;
-            color: var(--primary-600) !important;
-            font-weight: 600;
-            box-shadow: var(--shadow);
-            border-radius: 8px;
-        }
-        
-        /* 狀態標籤 Status Badge */
-        .status-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            padding: 0.5rem 1rem;
-            border-radius: 999px;
-            background: var(--status-bg) !important;
-            border: 1px solid var(--border-color) !important;
-            color: var(--text-main) !important;
-            font-weight: 500;
-            font-size: 0.875rem;
-            box-shadow: var(--shadow);
-            margin-right: 0.5rem;
-            margin-bottom: 0.5rem;
-        }
-        
-        .status-badge::before {
-            content: '';
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, var(--primary-500), var(--primary-600));
         }
 
-        /* 搜尋結果卡片 */
-        .search-result-card {
-            background: var(--bg-card) !important;
-            border: 1px solid var(--border-color) !important;
-            border-radius: 12px;
-            padding: 1.25rem;
-            margin-bottom: 1rem;
-            box-shadow: var(--shadow);
-            border-left: 4px solid var(--primary-500) !important;
-            color: var(--text-main) !important;
+        /* 強制暗黑模式選取器 - 解決反白問題 */
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-card: #0f172a;
+                --text-title: #f8fafc;
+                --text-body: #cbd5e1;
+                --border: #334155;
+                --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
+            }
+            
+            /* 修正 Streamlit 內建標題顏色 */
+            .stMarkdown h1, .stMarkdown h2, .stMarkdown h3 { color: #f8fafc !important; }
+            
+            /* 修正 Metric 標籤與數值 */
+            div[data-testid="stMetric"] label { color: #94a3b8 !important; }
+            div[data-testid="stMetricValue"] > div { color: #f8fafc !important; }
+            
+            /* 修正 Sidebar */
+            section[data-testid="stSidebar"] { background-color: #0f172a !important; }
+            
+            /* 修正 Tab 字體 */
+            .stTabs [data-baseweb="tab"] { color: #94a3b8 !important; }
+            .stTabs [data-baseweb="tab"][aria-selected="true"] { color: #60a5fa !important; }
         }
-        
-        /* 頁尾修正 */
+
+        .block-container { padding: 2rem 3rem !important; }
+
+        /* 卡片統一樣式 */
+        div[data-testid="stMetric"], .search-result-card, .footer {
+            background-color: var(--bg-card) !important;
+            border: 1px solid var(--border) !important;
+            border-radius: 12px !important;
+            box-shadow: var(--shadow) !important;
+            color: var(--text-body) !important;
+        }
+
+        .status-badge {
+            background-color: var(--bg-card) !important;
+            border: 1px solid var(--border) !important;
+            color: var(--text-body) !important;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            display: inline-block;
+            margin-right: 10px;
+        }
+
+        .search-result-card {
+            padding: 1.2rem;
+            margin-bottom: 1rem;
+            border-left: 5px solid var(--primary) !important;
+        }
+
         .footer {
-            margin-top: 4rem;
-            padding: 2.5rem 2rem;
-            background: var(--bg-card) !important;
-            border-top: 1px solid var(--border-color) !important;
+            margin-top: 3rem;
+            padding: 2rem;
             text-align: center;
-            font-size: 0.875rem;
-            color: var(--text-muted) !important;
+            font-size: 0.8rem;
         }
         </style>
     """, unsafe_allow_html=True)
@@ -752,8 +662,9 @@ def build_map(features: List[Dict], map_type: str, meta: Dict, *, zoom_start: in
         tooltip=folium.GeoJsonTooltip(fields=tooltip_fields, aliases=tooltip_aliases, sticky=True),
     ).add_to(m)
     
-    # 動態圖例切換 (支援暗黑模式 CSS 變數)
-    legend_style = "position: fixed; bottom: 30px; left: 30px; z-index:9999; background: var(--bg-card, white); color: var(--text-title, #1f2937); padding: 15px; border-radius: 12px; box-shadow: var(--shadow); font-size: 13px; border: 1px solid var(--border-color, #e5e7eb);"
+    # 動態圖例切換 (支援暗黑模式)
+    # 這裡的 HTML 會被注入，我們使用內嵌 CSS 變數配合外部 inject 的變數
+    legend_style = "position: fixed; bottom: 30px; left: 30px; z-index:9999; background: var(--bg-card, #ffffff); color: var(--text-body, #333333); padding: 15px; border-radius: 12px; box-shadow: var(--shadow); font-size: 13px; border: 1px solid var(--border, #e5e7eb);"
     
     if map_type == "ptal_intl":
         legend_html = f"""
