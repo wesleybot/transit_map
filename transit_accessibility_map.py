@@ -52,7 +52,7 @@ warnings.filterwarnings("ignore")
 # Page Configuration
 # =============================================================================
 APP_TITLE = "雙北高齡友善運輸地圖"
-APP_SUBTITLE = "K.Y.E Lockers Team| 期末資料庫管理專題"
+APP_SUBTITLE = "K.Y.E Lockers Team | 期末資料庫管理專題"
 PAGE_ICON = "🚌"
 
 st.set_page_config(
