@@ -61,8 +61,8 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded",
     menu_items={
-        'Get Help': 'https://kyesdbms.streamlit.app/',
-        'Report a bug': 'https://kyesdbms.streamlit.app/',
+        'Get Help': 'mailto:11346064@ntub.edu.tw',
+        'Report a bug': 'mailto:11346064@ntub.edu.tw',
         'About': f"# {APP_TITLE}\n\n{APP_SUBTITLE}\n\n提供雙北地區大眾運輸供給與高齡需求之空間分析儀表板。"
     }
 )
