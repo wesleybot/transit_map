@@ -25,7 +25,7 @@
 #
 #   @author K.Y.E Lockers Team
 #   @date 2025/12/26
-#   @description 雙北高齡友善運輸地圖 主程式 (完整支援暗黑模式與 KPI 樣式)
+#   @description 雙北高齡友善運輸地圖 主程式 (核心修正：原生主題變數支援暗黑模式)
 
 from __future__ import annotations
 
@@ -121,50 +121,20 @@ MAP_TYPE_OPTIONS = {
 }
 
 # =============================================================================
-# Professional UI/UX CSS (支援自動暗黑模式切換並保留 KPI 樣式)
+# Professional UI/UX CSS (深度連動 Streamlit 內建 Dark Mode 變數)
 # =============================================================================
 def inject_custom_css():
     st.markdown("""
         <style>
-        /* === Design System Variables & Theme Detection === */
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
-        
+        /* === 自動連動 Streamlit 主題變數 === */
         :root {
-            /* 預設：明亮模式 */
-            --primary-500: #3b82f6;
-            --primary-200: #bfdbfe;
-            --primary-600: #2563eb;
-            --bg-card: #ffffff;
-            --text-title: #111827;
-            --text-main: #374151;
-            --text-muted: #6b7280;
-            --border-color: #e5e7eb;
-            --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
-            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-            --radius-lg: 12px;
-            --gray-50: #f9fafb;
-            --gray-600: #4b5563;
+            /* 抓取 Streamlit 原生主題色，確保暗黑模式自動變色 */
+            --st-bg: var(--background-color);
+            --st-text: var(--text-color);
+            --st-sec-bg: var(--secondary-background-color);
         }
         
-        @media (prefers-color-scheme: dark) {
-            :root {
-                /* 暗黑模式顏色覆蓋 */
-                --bg-card: #1e293b;
-                --text-title: #f8fafc;
-                --text-main: #cbd5e1;
-                --text-muted: #94a3b8;
-                --border-color: #334155;
-                --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.4);
-                --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
-                --gray-50: #0f172a;
-            }
-            /* 修正 Streamlit 內建元件在暗黑模式下的顏色 */
-            div[data-testid="stMetricValue"] > div { color: var(--text-title) !important; }
-            div[data-testid="stMetric"] label { color: var(--text-muted) !important; }
-            h1, h2, h3 { color: var(--text-title) !important; }
-            p, .stMarkdown { color: var(--text-main) !important; }
-        }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
         
         * {
             font-family: 'Inter', 'Microsoft JhengHei', -apple-system, BlinkMacSystemFont, sans-serif;
@@ -174,6 +144,11 @@ def inject_custom_css():
         .block-container {
             padding: 2rem 3rem 3rem 3rem !important;
             max-width: 1440px !important;
+        }
+        
+        /* 標題與文字顏色適應 */
+        h1, h2, h3, p, .stMarkdown {
+            color: var(--st-text) !important;
         }
         
         h1 {
@@ -187,104 +162,90 @@ def inject_custom_css():
             letter-spacing: -0.02em !important;
         }
         
-        /* KPI Metrics 卡片樣式 (恢復您的原始設計) */
+        /* KPI Metrics 卡片樣式 (核心恢復與增強) */
         div[data-testid="stMetric"] {
-            background: var(--bg-card) !important;
-            border: 1px solid var(--border-color) !important;
+            background-color: var(--st-sec-bg) !important; /* 使用次要背景色，暗黑模式會自動變深灰 */
+            border: 1px solid rgba(128, 128, 128, 0.2) !important;
             padding: 1.5rem !important;
-            border-radius: var(--radius-lg) !important;
-            box-shadow: var(--shadow-sm) !important;
-            transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1) !important;
-            position: relative;
-            overflow: hidden;
+            border-radius: 12px !important;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
+            transition: transform 0.2s, box-shadow 0.2s !important;
         }
         
         div[data-testid="stMetric"]:hover {
-            border-color: var(--primary-200) !important;
-            box-shadow: var(--shadow-md) !important;
-            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2) !important;
+            transform: translateY(-3px) !important;
+            border-color: #3b82f6 !important;
         }
         
-        /* Sidebar 側邊欄修正 */
-        section[data-testid="stSidebar"] {
-            background-color: var(--bg-card) !important;
-            border-right: 1px solid var(--border-color);
-            box-shadow: var(--shadow-lg);
+        /* 修正 Metric 內部標籤與數值顏色 */
+        div[data-testid="stMetric"] label {
+            color: var(--st-text) !important;
+            opacity: 0.8;
         }
         
-        /* Tabs 分頁標籤修正 */
+        div[data-testid="stMetricValue"] > div {
+            color: var(--st-text) !important;
+            font-weight: 700 !important;
+        }
+        
+        /* Tabs 分頁樣式適應 */
         .stTabs [data-baseweb="tab-list"] {
-            gap: 0.5rem;
+            background-color: var(--st-sec-bg) !important;
             padding: 0.5rem;
-            background: var(--gray-50) !important;
-            border-radius: var(--radius-lg);
+            border-radius: 12px;
         }
         
         .stTabs [data-baseweb="tab"] {
-            height: auto;
-            padding: 0.75rem 1.5rem;
-            background: transparent;
-            border-radius: 8px;
-            font-weight: 500;
-            color: var(--text-muted);
-            transition: all 200ms;
-        }
-        
-        .stTabs [data-baseweb="tab"]:hover {
-            background: var(--bg-card);
-            color: var(--text-title);
+            color: var(--st-text) !important;
+            opacity: 0.6;
         }
         
         .stTabs [data-baseweb="tab"][aria-selected="true"] {
-            background: var(--bg-card) !important;
-            color: var(--primary-600) !important;
+            background-color: var(--background-color) !important;
+            color: #3b82f6 !important;
+            opacity: 1;
             font-weight: 600;
-            box-shadow: var(--shadow-sm);
+            border-radius: 8px;
         }
         
+        /* 狀態標籤 Status Badge */
         .status-badge {
             display: inline-flex;
             align-items: center;
             gap: 0.5rem;
             padding: 0.5rem 1rem;
             border-radius: 999px;
-            background: var(--bg-card) !important;
-            border: 1px solid var(--border-color) !important;
-            color: var(--text-main) !important;
+            background-color: var(--st-sec-bg) !important;
+            border: 1px solid rgba(128, 128, 128, 0.2);
+            color: var(--st-text) !important;
             font-weight: 500;
             font-size: 0.875rem;
-            box-shadow: var(--shadow-sm);
             margin-right: 0.5rem;
             margin-bottom: 0.5rem;
         }
         
-        .status-badge::before {
-            content: '';
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, var(--primary-500), var(--primary-600));
-        }
-
+        /* 搜尋結果卡片 */
         .search-result-card {
-            background: var(--bg-card) !important;
-            border: 1px solid var(--border-color) !important;
-            border-radius: var(--radius-lg) !important;
+            background-color: var(--st-sec-bg) !important;
+            border: 1px solid rgba(128, 128, 128, 0.2) !important;
+            border-radius: 12px;
             padding: 1.25rem;
             margin-bottom: 1rem;
-            box-shadow: var(--shadow-sm);
-            border-left: 4px solid var(--primary-500) !important;
-            color: var(--text-main) !important;
+            border-left: 4px solid #3b82f6 !important;
+            color: var(--st-text) !important;
         }
         
+        /* 頁尾修正 */
         .footer {
             margin-top: 4rem;
             padding: 2.5rem 2rem;
-            background: var(--gray-50) !important;
-            border-top: 1px solid var(--border-color) !important;
+            background-color: var(--st-sec-bg) !important;
+            border-top: 1px solid rgba(128, 128, 128, 0.2);
             text-align: center;
             font-size: 0.875rem;
-            color: var(--text-muted) !important;
+            color: var(--st-text) !important;
+            opacity: 0.7;
         }
         </style>
     """, unsafe_allow_html=True)
@@ -319,11 +280,13 @@ def load_areas(_db):
 # Helper Functions
 # =============================================================================
 
+
 # 自動換行函式，每5個字就換行。 >>> 在統計儀表板的Q3圖表中使用。
 def wrap_text_plotly(text, width=5):
     if not isinstance(text, str): return str(text)
     if len(text) <= width: return text
     return '<br>'.join([text[i:i+width] for i in range(0, len(text), width)])
+
 
 # 估算 65 歲以上人口
 # 公式：70-79 + 80-89 + 90-99 + 100 + + 0.5 * (60-69)
@@ -335,6 +298,7 @@ def estimate_pop_65p(area_doc: Dict) -> float:
     pop_90_99 = float(area_doc.get("population_age_90_99", 0) or 0)
     pop_100p = float(area_doc.get("population_age_100_plus", 0) or 0)
     return pop_70_79 + pop_80_89 + pop_90_99 + pop_100p + 0.5 * pop_60_69
+
 
 # 簡化座標!!!會根我設定的step來變化。
 # 備註：例如每 5 個點抓一個。 >>> 確保「封閉圖形」的特性：如果起點和終點不一樣，它會手動把起點補在最後面，確保邊界是閉合的。
@@ -356,6 +320,7 @@ def simplify_geometry(geom: Dict, step: int) -> Dict:
         g["coordinates"] = simplify_coords(g["coordinates"], step)
     return g
 
+
 # PTAL A-F 等級邏輯
 def ptal_grade(score: float) -> Tuple[str, str]:
     s = float(score or 0)
@@ -365,6 +330,7 @@ def ptal_grade(score: float) -> Tuple[str, str]:
     if s >= 40: return "D", "#fb6a4a"
     if s >= 25: return "E", "#de2d26"
     return "F", "#a50f15"
+
 
 # 0-6b 分級函數 (僅供國際模式)
 def get_ptal_intl_info(ai: float) -> Tuple[str, str]:
@@ -512,11 +478,11 @@ def render_stats_tab(db, current_time_window: str):
     st.markdown(f"### 六題暖身題：動態統計圖表")
     st.caption(f"目前時段：{display_name}")
     
-    # 支援暗黑模式的圖表佈局設定
-    plotly_common_layout = dict(
+    # 圖表在暗黑模式下的顏色適應 (文字統一使用淡灰色)
+    plotly_layout = dict(
         paper_bgcolor='rgba(0,0,0,0)',
         plot_bgcolor='rgba(0,0,0,0)',
-        font=dict(color="#888", family="Microsoft JhengHei"),
+        font=dict(color="#94a3b8", family="Microsoft JhengHei"),
         margin=dict(l=20, r=20, t=50, b=20)
     )
     
@@ -535,7 +501,7 @@ def render_stats_tab(db, current_time_window: str):
             df1 = pd.DataFrame(data1)
             fig1 = px.bar(df1, x="count", y="_id", orientation='h', title="Q1. 站牌數量最多行政區", 
                          labels={"count": "站牌數量", "_id": ""}, color="count", color_continuous_scale="Viridis")
-            fig1.update_layout(height=300, showlegend=False, **plotly_common_layout)
+            fig1.update_layout(height=300, showlegend=False, **plotly_layout)
             row1_col1.plotly_chart(fig1, use_container_width=True)
 
         # ========== Q3: 路線站點數排行 ==========
@@ -565,18 +531,9 @@ def render_stats_tab(db, current_time_window: str):
                 type='category', 
                 categoryorder='array',
                 categoryarray=df3["name_zh_wrapped"].tolist(),
-                tickmode='linear', 
-                tick0=0, 
-                dtick=1,
                 tickfont=dict(size=11),
-                automargin=True,
-                title=None,
+                automargin=True
             )
-            
-            fig3.update_traces(textposition="outside", cliponaxis=False)
-            
-            min_val = df3["stop_count"].min()
-            tick0_val = (min_val // 5) * 5
             
             fig3.update_layout(
                 height=300,
@@ -584,9 +541,8 @@ def render_stats_tab(db, current_time_window: str):
                 showlegend=False,
                 coloraxis_showscale=True,
                 coloraxis_colorbar=dict(thickness=15, len=0.7),
-                **plotly_common_layout
+                **plotly_layout
             )
-            fig3.update_xaxes(showgrid=True, gridcolor='rgba(128,128,128,0.2)', title=None)
             row1_col2.plotly_chart(fig3, use_container_width=True, key="q3_chart")
 
         # Q4: 客運業者佔比
@@ -599,7 +555,7 @@ def render_stats_tab(db, current_time_window: str):
         if data4:
             df4 = pd.DataFrame(data4)
             fig4 = px.pie(df4, values='count', names='_id', hole=.4, title="Q4. 營運路線業者佔比")
-            fig4.update_layout(height=300, **plotly_common_layout)
+            fig4.update_layout(height=300, **plotly_layout)
             fig4.update_layout(margin=dict(l=10, r=10, t=50, b=10))
             row1_col3.plotly_chart(fig4, use_container_width=True)
 
@@ -614,7 +570,7 @@ def render_stats_tab(db, current_time_window: str):
             df2 = pd.DataFrame(data2)
             fig2 = px.bar(df2, x="trips", y="name", orientation='h', title="Q2. 每小時班次最多站點", 
                          labels={"trips": "班次/小時", "name": ""}, color="trips", color_continuous_scale="Magma")
-            fig2.update_layout(height=350, showlegend=False, **plotly_common_layout)
+            fig2.update_layout(height=350, showlegend=False, **plotly_layout)
             row2_col1.plotly_chart(fig2, use_container_width=True)
 
         # Q6: 服務水準比較 (尖峰 vs 離峰)
@@ -626,12 +582,11 @@ def render_stats_tab(db, current_time_window: str):
         ]))
         if data6:
             df6 = pd.DataFrame([{"district": i["_id"]["d"], "time": i["_id"]["t"], "score": i["score"]} for i in data6])
-            # 取平均分數最高的前 8 區
             top_districts = df6.groupby("district")["score"].mean().sort_values(ascending=False).index[:8]
             fig6 = px.bar(df6[df6["district"].isin(top_districts)], x="district", y="score", color="time", 
                          barmode="group", title="Q6. 各區尖峰 vs 離峰 供給分數",
                          labels={"score": "平均供給分數", "district": ""})
-            fig6.update_layout(height=350, **plotly_common_layout)
+            fig6.update_layout(height=350, **plotly_layout)
             row2_col2.plotly_chart(fig6, use_container_width=True)
 
         # Q5: 服務等級比例 (A-F)
@@ -644,7 +599,7 @@ def render_stats_tab(db, current_time_window: str):
             df5 = pd.DataFrame(data5).dropna()
             fig5 = px.pie(df5, values='count', names='_id', hole=.4, title="Q5. 服務等級比例分佈",
                          color_discrete_sequence=px.colors.qualitative.Pastel)
-            fig5.update_layout(height=350, **plotly_common_layout)
+            fig5.update_layout(height=350, **plotly_layout)
             fig5.update_layout(margin=dict(l=10, r=10, t=50, b=10))
             row2_col3.plotly_chart(fig5, use_container_width=True)
 
@@ -729,25 +684,19 @@ def build_area_features(areas: List[Dict], area_scores: Dict[str, Dict], map_typ
 # Build Folium Map
 # =============================================================================
 # 地圖基礎設定
-# 中心點：設定在 [25.05, 121.53]（大約是台北市中心）
-# 底圖風格：使用 CartoDB positron，這是簡潔、淺白色ㄉ地圖，適合用來突顯有顏色的行政區區塊。
 def build_map(features: List[Dict], map_type: str, meta: Dict, *, zoom_start: int = DEFAULT_ZOOM):
     m = folium.Map(location=[25.05, 121.53], zoom_start=zoom_start, tiles="CartoDB positron", control_scale=True, prefer_canvas=True)
     
     # 上色邏輯
-    # 如果 map_type 是 「老年友善」，就讀取 elderly_color；否則讀取 ptal_color。
-    # 區塊半透明度設定是 0.70，這樣就還可以看到底圖的路名。
     def style_fn(feat):
         p = feat.get("properties") or {}
         color = p.get("elderly_color") if map_type == "elderly" else p.get("ptal_color")
         return {"fillColor": color, "color": "#4b5563", "weight": 1, "fillOpacity": 0.70}
     
     # 懸浮提示分流
-    # 國際模式 (ptal_intl)：顯示五項資訊。
     if map_type == "ptal_intl":
         tooltip_fields = ["city", "name", "intl_grade", "intl_ai", "intl_n"]
         tooltip_aliases = ["城市", "行政區", "國際等級(0-6b)", "AI可及性指數", "覆蓋網格數"]
-    # 一般模式 (預設)：顯示 10 項詳細資訊。
     else:
         tooltip_fields = ["city", "name", "ptal_grade", "ptal_score", "tph", "avg_headway_min", "elderly_ratio_pct", "gap", "elderly_score", "n_points"]
         tooltip_aliases = ["城市", "行政區", "PTAL等級", "PTAL分數", "每小時班次", "平均班距(min)", "65+比例(%)", "供需缺口", "友善度", "樣本點數"]
@@ -759,16 +708,12 @@ def build_map(features: List[Dict], map_type: str, meta: Dict, *, zoom_start: in
         tooltip=folium.GeoJsonTooltip(fields=tooltip_fields, aliases=tooltip_aliases, sticky=True),
     ).add_to(m)
     
-    # 動態圖例切換 (支援 CSS 變數)
-    legend_bg_var = "var(--bg-card, white)"
-    legend_text_var = "var(--text-title, #1f2937)"
-    legend_border_var = "var(--border-color, #e5e7eb)"
+    # 圖例背景與文字連動主題變數
+    legend_style = "position: fixed; bottom: 30px; left: 30px; z-index:9999; background: var(--background-color, white); color: var(--text-color, #1f2937); padding: 15px; border-radius: 12px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); font-size: 11px; border: 1px solid rgba(128,128,128,0.2);"
     
-    legend_base_style = f"position: fixed; bottom: 30px; left: 30px; z-index:9999; background: {legend_bg_var}; color: {legend_text_var}; padding: 15px; border-radius: 12px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); font-size: 11px; border: 1px solid {legend_border_var};"
-
     if map_type == "ptal_intl":
         legend_html = f"""
-        <div style="{legend_base_style} width: 180px;">
+        <div style="{legend_style} width: 180px;">
           <b style="font-size: 13px;">國際 PTAL 標準 (0-6b)</b><br><br>
           <div style="display: flex; flex-wrap: wrap; gap: 4px;">
             <div style="display: flex; align-items: center; width: 45%;"><i style="background:#31a354;width:12px;height:12px;display:inline-block;"></i><span style="margin-left: 4px;">6b</span></div>
@@ -787,7 +732,7 @@ def build_map(features: List[Dict], map_type: str, meta: Dict, *, zoom_start: in
         edges = meta.get("elderly_quantile_edges", [20, 40, 60, 80])
         palette = meta.get("elderly_palette", ["#a50f15", "#de2d26", "#fb6a4a", "#fcae91", "#fee5d9"])
         legend_html = f"""
-        <div style="{legend_base_style}">
+        <div style="{legend_style}">
           <b>老年友善度分級</b><br><br>
           <i style="background:{palette[0]};width:20px;height:14px;display:inline-block;border-radius:4px;"></i> 極差 ≤ {edges[0]:.1f}<br>
           <i style="background:{palette[1]};width:20px;height:14px;display:inline-block;border-radius:4px;"></i> 不足 ≤ {edges[1]:.1f}<br>
@@ -798,7 +743,7 @@ def build_map(features: List[Dict], map_type: str, meta: Dict, *, zoom_start: in
         """
     else:
         legend_html = f"""
-        <div style="{legend_base_style}">
+        <div style="{legend_style}">
           <b>PTAL 運輸供給等級</b><br><br>
           <i style="background:#f7f7f7;width:20px;height:14px;display:inline-block;border-radius:4px;border:1px solid #ddd;"></i> A (極優)<br>
           <i style="background:#fee5d9;width:20px;height:14px;display:inline-block;border-radius:4px;"></i> B (優良)<br>
@@ -815,7 +760,6 @@ def build_map(features: List[Dict], map_type: str, meta: Dict, *, zoom_start: in
 # =============================================================================
 # Main Application
 # =============================================================================
-# 總店長大腦
 def main():
     inject_custom_css()
     db = get_db()
@@ -868,7 +812,6 @@ def main():
         with st.spinner("[Status]同步數據中..."):
             areas = load_areas(db)
             area_scores = load_area_scores_from_mongo(db, time_window)
-            # 只有當選擇國際標準時，才去查詢 3.7 萬網格表
             intl_scores = load_area_intl_scores(db, "peak_morning") if map_type == "ptal_intl" else None
             features, meta = build_area_features(areas, area_scores, map_type, intl_scores)
     else:
@@ -879,7 +822,6 @@ def main():
     if not df_metrics.empty:
         c1, c2, c3, c4 = st.columns(4)
         c1.metric("行政區數", f"{len(df_metrics)}")
-        # 注意：df_metrics['ptal_score'] 可能有時會因為模式切換而不同，這裡做安全處理
         avg_ptal = df_metrics['ptal_score'].mean() if 'ptal_score' in df_metrics.columns else 0
         c2.metric("平均供給", f"{avg_ptal:.1f}", help="PTAL 分數平均 (0-100)")
         c3.metric("平均友善度", f"{df_metrics['elderly_score'].mean():.1f}")
@@ -920,7 +862,6 @@ def main():
                 st.markdown('</div>', unsafe_allow_html=True)
         
         st.markdown("#### 完整資料表")
-        # 移除地圖顏色等雜項欄位再顯示
         drop_cols = ["area_id", "ptal_color", "elderly_color", "intl_grade", "intl_ai", "intl_n"]
         df_table = df_disp.drop(columns=[c for c in drop_cols if c in df_disp.columns])
         st.dataframe(df_table, use_container_width=True, height=400)
@@ -928,7 +869,7 @@ def main():
         csv = df_disp.to_csv(index=False).encode('utf-8-sig')
         st.download_button("下載資料 (CSV)", csv, f"transit_data_{time_window}.csv", "text/csv", use_container_width=True)
         
-    # Tab 2: Dashboard (Q1-Q6)
+    # Tab 2: Dashboard
     with tabs[2]:
         render_stats_tab(db, time_window)
         
