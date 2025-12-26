@@ -25,7 +25,7 @@
 #
 #   @author K.Y.E Lockers Team
 #   @date 2025/12/26
-#   @description 雙北高齡友善運輸地圖 主程式 (核心修正：原生主題變數支援暗黑模式)
+#   @description 雙北高齡友善運輸地圖 主程式
 
 from __future__ import annotations
 
@@ -98,8 +98,8 @@ if not MONGO_URI and "MONGO_URI" in st.secrets:
     MONGO_URI = st.secrets["MONGO_URI"]
 
 if not MONGO_URI:
-    # 預設連線字串
-    MONGO_URI = "mongodb+srv://11346064:Az017135@tdx-transit.hsynqmb.mongodb.net/tdx_transit?appName=TDX-Transit"
+    st.error("[Status: Error]：未偵測到資料庫連線字串。請在 .env 檔案或 Streamlit Secrets 設定 MONGO_URI。")
+    st.stop()
 
 CACHE_TTL_SECONDS = 3600 # 快取時間，預設一小時，存在記憶體裡 1 小時，這段期間內不用重複抓取。
 SIMPLIFY_STEP_FIXED = 5 # 固定簡化步長。 備註：如果一條路徑有 1000 個座標點，渲染起來會很慢。設定為 5 可能代表「每 5 個點抽樣一次」或使用某種演算法縮減點數。
