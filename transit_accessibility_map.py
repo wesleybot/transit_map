@@ -508,7 +508,7 @@ def render_stats_tab(db, current_time_window: str):
         data3 = list(db.routes.aggregate([
             {"$match": {"mode": "bus"}},
             {"$sort": {"stop_count": -1}},
-            {"$limit": 6},
+            {"$limit": 5},
             {"$project": {"name_zh": 1, "stop_count": 1}}
         ]))
         
@@ -536,8 +536,8 @@ def render_stats_tab(db, current_time_window: str):
             )
             
             fig3.update_layout(
-                height=600,
-                bargap=0.15,
+                height=300,
+                bargap=0.20,
                 showlegend=False,
                 coloraxis_showscale=True,
                 coloraxis_colorbar=dict(thickness=15, len=0.7),
