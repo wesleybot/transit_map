@@ -536,7 +536,7 @@ def render_stats_tab(db, current_time_window: str):
             )
             
             fig3.update_layout(
-                height=400,
+                height=600,
                 bargap=0.15,
                 showlegend=False,
                 coloraxis_showscale=True,
