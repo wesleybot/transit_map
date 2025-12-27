@@ -508,7 +508,7 @@ def render_stats_tab(db, current_time_window: str):
         data3 = list(db.routes.aggregate([
             {"$match": {"mode": "bus"}},
             {"$sort": {"stop_count": -1}},
-            {"$limit": 5},
+            {"$limit": 6},
             {"$project": {"name_zh": 1, "stop_count": 1}}
         ]))
         
