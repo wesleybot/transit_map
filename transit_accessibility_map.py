@@ -536,8 +536,8 @@ def render_stats_tab(db, current_time_window: str):
             )
             
             fig3.update_layout(
-                height=300,
-                bargap=0.20,
+                height=400,
+                bargap=0.15,
                 showlegend=False,
                 coloraxis_showscale=True,
                 coloraxis_colorbar=dict(thickness=15, len=0.7),
