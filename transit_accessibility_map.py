@@ -847,7 +847,7 @@ def main():
                 # 預設載入 session_state 的內容
                 q_input = st.text_input("輸入行政區名稱...", value=st.session_state.search_query, label_visibility="collapsed")
             with search_col2:
-                search_trigger = st.form_submit_button("搜尋 🔍", use_container_width=True)
+                search_trigger = st.form_submit_button("點我搜尋", use_container_width=True)
         
         # 清除搜尋按鈕
         if st.button("清除搜尋並回列表", use_container_width=True):
