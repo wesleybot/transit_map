@@ -633,7 +633,7 @@ def build_area_features(areas: List[Dict], area_scores: Dict[str, Dict], map_typ
         orig_sc = area_scores.get(area_id, {"ptal_score": 0.0, "avg_headway_min": 0.0, "tph": 0.0, "n_points": 0})
         elderly = tmp_elderly.get(area_id, {"elderly_ratio_pct": 0, "elderly_score": 0, "gap": 0})
         
-        # 任務 3: 等級與顏色判斷分流
+        # 等級與顏色判斷分流
         if map_type == "ptal_intl" and intl_scores:
             # 國際模式：使用 0-6b 邏輯
             isc = intl_scores.get(area_id, {"accessibility_index": 0.0, "n_points": 0})
@@ -909,9 +909,9 @@ def main():
         # 重新命名欄位
         df_download = df_download.rename(columns=column_mapping)
         
-        # 轉換為 CSV 格式 (使用 utf-8-sig 以支援中文在 Excel 中開啟不亂碼)
+        # 轉換為 CSV 格式 >>>用 utf-8-sig Excel 開中文的才不會有亂碼)
         csv_data = df_download.to_csv(index=False).encode('utf-8-sig')
-        st.download_button("下載資料 (中文欄位 CSV)", csv_data, f"transit_data_{time_window}_zh.csv", "text/csv", use_container_width=True)
+        st.download_button("下載資料CSV", csv_data, f"transit_data_{time_window}_zh.csv", "text/csv", use_container_width=True)
         
     # Tab 2: Dashboard
     with tabs[2]:
