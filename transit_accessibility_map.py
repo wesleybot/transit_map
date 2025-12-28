@@ -633,7 +633,7 @@ def build_area_features(areas: List[Dict], area_scores: Dict[str, Dict], map_typ
         orig_sc = area_scores.get(area_id, {"ptal_score": 0.0, "avg_headway_min": 0.0, "tph": 0.0, "n_points": 0})
         elderly = tmp_elderly.get(area_id, {"elderly_ratio_pct": 0, "elderly_score": 0, "gap": 0})
         
-        # 等級與顏色判斷分流
+        # 任務 3: 等級與顏色判斷分流
         if map_type == "ptal_intl" and intl_scores:
             # 國際模式：使用 0-6b 邏輯
             isc = intl_scores.get(area_id, {"accessibility_index": 0.0, "n_points": 0})
@@ -873,18 +873,7 @@ def main():
                 sc3.metric("缺口", f"{row['gap']:+.1f}")
                 st.markdown('</div>', unsafe_allow_html=True)
         
-        st.markdown("#### 完整資料表")
-        drop_cols = ["area_id", "ptal_color", "elderly_color", "intl_grade", "intl_ai", "intl_n"]
-        df_table = df_disp.drop(columns=[c for c in drop_cols if c in df_disp.columns])
-        st.dataframe(df_table, use_container_width=True, height=400)
-        
-        # 任務一：加上 downloadCSV 功能且欄位名稱改為中文
-        # 準備下載用的 DataFrame
-        df_download = df_disp.copy()
-        # 移除內部欄位
-        df_download = df_download.drop(columns=[c for c in drop_cols if c in df_download.columns])
-        
-        # 欄位中文化映射
+        # 欄位中文化映射表 (全局共用)
         column_mapping = {
             "city": "城市",
             "name": "行政區",
@@ -895,23 +884,32 @@ def main():
             "elderly_ratio_pct": "65+比例(%)",
             "gap": "供需缺口",
             "elderly_score": "友善度",
-            "n_points": "樣本點數"
+            "n_points": "樣本點數",
+            "intl_grade": "國際等級(0-6b)",
+            "intl_ai": "AI可及性指數",
+            "intl_n": "覆蓋網格數"
         }
-        
-        # 若在國際模式下，增加國際模式欄位映射
-        if map_type == "ptal_intl":
-            column_mapping.update({
-                "intl_grade": "國際等級(0-6b)",
-                "intl_ai": "AI可及性指數",
-                "intl_n": "覆蓋網格數"
-            })
 
-        # 重新命名欄位
+        st.markdown("#### 完整資料表")
+        drop_cols = ["area_id", "ptal_color", "elderly_color", "intl_grade", "intl_ai", "intl_n"]
+        df_table = df_disp.drop(columns=[c for c in drop_cols if c in df_disp.columns])
+        
+        # 修正問題二：將網頁上的資料表欄位也轉換為中文
+        df_table_zh = df_table.rename(columns=column_mapping)
+        st.dataframe(df_table_zh, use_container_width=True, height=400)
+        
+        # 任務一：加上 downloadCSV 功能且欄位名稱改為中文
+        # 準備下載用的 DataFrame
+        df_download = df_disp.copy()
+        # 移除內部欄位
+        df_download = df_download.drop(columns=[c for c in drop_cols if c in df_download.columns])
+        
+        # 重新命名欄位為中文
         df_download = df_download.rename(columns=column_mapping)
         
-        # 轉換為 CSV 格式 >>>用 utf-8-sig Excel 開中文的才不會有亂碼)
+        # 轉換為 CSV 格式 (使用 utf-8-sig 以支援中文在 Excel 中開啟不亂碼)
         csv_data = df_download.to_csv(index=False).encode('utf-8-sig')
-        st.download_button("下載資料CSV", csv_data, f"transit_data_{time_window}_zh.csv", "text/csv", use_container_width=True)
+        st.download_button("下載資料 (中文欄位 CSV)", csv_data, f"transit_data_{time_window}_zh.csv", "text/csv", use_container_width=True)
         
     # Tab 2: Dashboard
     with tabs[2]:
