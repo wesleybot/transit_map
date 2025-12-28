@@ -894,11 +894,11 @@ def main():
         drop_cols = ["area_id", "ptal_color", "elderly_color", "intl_grade", "intl_ai", "intl_n"]
         df_table = df_disp.drop(columns=[c for c in drop_cols if c in df_disp.columns])
         
-        # 修正問題二：將網頁上的資料表欄位也轉換為中文
+        # 將網頁上的資料表欄位也轉換為中文
         df_table_zh = df_table.rename(columns=column_mapping)
         st.dataframe(df_table_zh, use_container_width=True, height=400)
         
-        # 任務一：加上 downloadCSV 功能且欄位名稱改為中文
+        # 加上 downloadCSV 功能且欄位名稱改為中文
         # 準備下載用的 DataFrame
         df_download = df_disp.copy()
         # 移除內部欄位
@@ -907,7 +907,7 @@ def main():
         # 重新命名欄位為中文
         df_download = df_download.rename(columns=column_mapping)
         
-        # 轉換為 CSV 格式 (使用 utf-8-sig 以支援中文在 Excel 中開啟不亂碼)
+        # 轉換為 CSV 格式 (使用 utf-8-sig 就可以支援中文在 Excel 中開啟不亂碼)
         csv_data = df_download.to_csv(index=False).encode('utf-8-sig')
         st.download_button("下載資料 (中文欄位 CSV)", csv_data, f"transit_data_{time_window}_zh.csv", "text/csv", use_container_width=True)
         
