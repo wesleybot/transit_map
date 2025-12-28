@@ -839,15 +839,27 @@ def main():
     # Tab 1: Search & Table
     with tabs[1]:
         st.markdown("### 區域快速搜尋")
-        search_col1, search_col2 = st.columns([3, 1])
-        with search_col1:
-            q = st.text_input("輸入行政區名稱...", value=st.session_state.search_query, label_visibility="collapsed", key="search_input_final")
-            st.session_state.search_query = q
-        with search_col2:
-            if st.button("清除搜尋", use_container_width=True):
-                st.session_state.search_query = ""
-                st.rerun()
         
+        # 優化搜尋功能：使用 form 防止滑鼠離開自動觸發，僅限點選或 Enter 觸發
+        with st.form("search_form_v2", clear_on_submit=False):
+            search_col1, search_col2 = st.columns([3, 1])
+            with search_col1:
+                # 預設載入 session_state 的內容
+                q_input = st.text_input("輸入行政區名稱...", value=st.session_state.search_query, label_visibility="collapsed")
+            with search_col2:
+                search_trigger = st.form_submit_button("搜尋 🔍", use_container_width=True)
+        
+        # 清除搜尋按鈕
+        if st.button("清除搜尋並回列表", use_container_width=True):
+            st.session_state.search_query = ""
+            st.rerun()
+
+        # 當按下搜尋或 Enter 時更新 session_state
+        if search_trigger:
+            st.session_state.search_query = q_input
+            st.rerun()
+
+        q = st.session_state.search_query
         df_disp = df_metrics.copy()
         if q.strip():
             df_disp = df_disp[df_disp["name"].str.contains(q, na=False) | df_disp["city"].str.contains(q, na=False)]
@@ -866,8 +878,40 @@ def main():
         df_table = df_disp.drop(columns=[c for c in drop_cols if c in df_disp.columns])
         st.dataframe(df_table, use_container_width=True, height=400)
         
-        csv = df_disp.to_csv(index=False).encode('utf-8-sig')
-        st.download_button("下載資料 (CSV)", csv, f"transit_data_{time_window}.csv", "text/csv", use_container_width=True)
+        # 任務一：加上 downloadCSV 功能且欄位名稱改為中文
+        # 準備下載用的 DataFrame
+        df_download = df_disp.copy()
+        # 移除內部欄位
+        df_download = df_download.drop(columns=[c for c in drop_cols if c in df_download.columns])
+        
+        # 欄位中文化映射
+        column_mapping = {
+            "city": "城市",
+            "name": "行政區",
+            "ptal_grade": "PTAL等級",
+            "ptal_score": "PTAL分數",
+            "tph": "每小時班次",
+            "avg_headway_min": "平均班距(min)",
+            "elderly_ratio_pct": "65+比例(%)",
+            "gap": "供需缺口",
+            "elderly_score": "友善度",
+            "n_points": "樣本點數"
+        }
+        
+        # 若在國際模式下，增加國際模式欄位映射
+        if map_type == "ptal_intl":
+            column_mapping.update({
+                "intl_grade": "國際等級(0-6b)",
+                "intl_ai": "AI可及性指數",
+                "intl_n": "覆蓋網格數"
+            })
+
+        # 重新命名欄位
+        df_download = df_download.rename(columns=column_mapping)
+        
+        # 轉換為 CSV 格式 (使用 utf-8-sig 以支援中文在 Excel 中開啟不亂碼)
+        csv_data = df_download.to_csv(index=False).encode('utf-8-sig')
+        st.download_button("下載資料 (中文欄位 CSV)", csv_data, f"transit_data_{time_window}_zh.csv", "text/csv", use_container_width=True)
         
     # Tab 2: Dashboard
     with tabs[2]:
