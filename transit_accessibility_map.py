@@ -909,7 +909,7 @@ def main():
         
         # 轉換為 CSV 格式 (使用 utf-8-sig 就可以支援中文在 Excel 中開啟不亂碼)
         csv_data = df_download.to_csv(index=False).encode('utf-8-sig')
-        st.download_button("下載資料 CSV)", csv_data, f"transit_data_{time_window}_zh.csv", "text/csv", use_container_width=True)
+        st.download_button("下載資料 CSV", csv_data, f"transit_data_{time_window}_zh.csv", "text/csv", use_container_width=True)
         
     # Tab 2: Dashboard
     with tabs[2]:
